@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ShareDao">
+
+	<sql id="cmsShareDaoColumns">
+		a.id AS "id",
+		a.category_id AS "category.id",
+		a.title AS "title",
+		a.title_id AS "titleId",
+		a.create_by AS "createBy.id",
+		a.ownlib AS
+		"ownlib",
+		a.share_date AS "shareDate",
+		a.way AS "way",
+		a.allow_share AS
+		"aollwShare",
+		a.share_count AS "shareCount"
+		<!-- a.update_date AS "updateDate" -->
+
+	</sql>
+
+
+	<sql id="cmsShareDaoJoins">
+	</sql>
+
+	<select id="getShare" resultType="Share">
+		SELECT
+		<include refid="cmsShareDaoColumns" />
+		FROM cms_share a
+		<include refid="cmsShareDaoJoins" />
+		WHERE title_id = #{titleId}
+	</select>
+	<resultMap type="java.util.HashMap" id="hashmap">
+		<result property="id" column="id"/>
+		<result property="title" column="title"/>
+		<result property="titilId" column="title_id"/>
+		<result property="authorname" column="authorname"/>
+		<result property="sharedate" column="share_date" javaType="java.util.Date"/>
+		<result property="way" column="way"/>
+		<result property="allowShare" column="allow_share" />
+		<result property="shareCount" column="share_count"/>
+	</resultMap>
+	<select id="getAllListByCondition" resultMap="hashmap">
+		select * from(
+			select S.*, rownum rn
+				from(
+					SELECT
+					s.id AS "id",
+					s.title AS "title",
+					s.title_id AS "titilId",
+					u.NAME AS "authorname",
+					s.share_date AS "shareDate",
+					s.way AS "way",
+					s.allow_share AS "allowShare",
+					s.share_count AS "shareCount"
+					FROM
+						CMS_SHARE s,
+					<if test="keyword != null">
+						CMS_ARTICLE ca,
+					</if>
+						SYS_USER u
+					WHERE
+					u.ID = s.CREATE_BY 
+					<if test="searchkey != null and searchkey != ''">
+						AND TITLE like #{searchkey}
+					</if>
+					<if test="keyword != null and keyword != ''">
+						AND s.TITLE_ID =ca.ID and ca.LABEL_LIST like #{keyword}
+					</if>
+					ORDER BY s.SHARE_DATE DESC
+				) S
+			where
+				rownum <![CDATA[<=]]>
+					#{endnum}
+				)
+			where rn <![CDATA[>=]]>
+				#{beginnum}
+	</select>
+
+
+	<select id="get" resultType="Share">
+		SELECT
+		<include refid="cmsShareDaoColumns" />
+		FROM cms_share a
+		<include refid="cmsShareDaoJoins" />
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</select>
+
+
+	<select id="findList" resultType="Share">
+		SELECT
+		ca.title as "articletitle",
+		c.name AS "category.name",
+		ca.update_date AS "articleupdateDate",
+		<include refid="cmsShareDaoColumns" />
+		FROM cms_share a
+		JOIN cms_category c ON c.id = a.category_id
+		JOIN
+		cms_article ca ON ca.id = a.title_id
+		<where>
+			ca.del_flag='0'
+			<if test="title != null and title != ''">
+				AND ca.title LIKE
+				<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+			</if>
+			<if test="createBy.id != null and createBy.id != ''">
+				AND a.create_by=#{createBy.id}
+			</if>
+			<if test="category.id != null and category.id != ''">
+				AND (a.category_id = #{category.id}
+				<if test="category.parentIds != null and category.parentIds != ''">
+					or c.parent_ids like
+					<if test="dbName == 'oracle'">'%'||#{category.id}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{category.id}, ',%')</if>
+				</if>
+				)
+			</if>
+		</where>
+		ORDER BY a.share_date DESC
+		<!-- <choose> <when test="page !=null and page.orderBy != null and page.orderBy 
+			!= ''"> ORDER BY ${page.orderBy} </when> <otherwise> ORDER BY a.share_date 
+			DESC </otherwise> </choose> -->
+		<!-- SELECT * FROM cms_share -->
+	</select>
+
+	<select id="findAllList" resultType="Share">
+		SELECT
+		<include refid="cmsShareDaoColumns" />
+		FROM cms_share a
+		<include refid="cmsShareDaoJoins" />
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		ORDER BY a.share_date DESC
+		<!-- <choose> <when test="page !=null and page.orderBy != null and page.orderBy 
+			!= ''"> ORDER BY ${page.orderBy} </when> <otherwise> ORDER BY a.recom_date 
+			DESC </otherwise> </choose> -->
+	</select>
+
+	<insert id="insert">
+		INSERT INTO cms_share(
+		id,
+		category_id,
+		title,
+		title_id,
+		create_by,
+		ownlib,
+		share_date,
+		way,
+		allow_share,
+		share_count
+		<!--update_date -->
+		) VALUES (
+		#{id},
+		#{category.id},
+		#{title},
+		#{titleId},
+		#{createBy.id},
+		#{ownlib},
+		#{shareDate},
+		#{way},
+		#{allowShare},
+		#{shareCount}
+		<!-- #{updateDate} -->
+		)
+	</insert>
+
+	<update id="update">
+		UPDATE cms_share SET
+		ownlib=#{ownlib},
+		<!-- update_date=#{updateDate}, -->
+		category_id = #{category.id},
+		share_date=#{updateDate}
+		WHERE create_by =
+		#{createBy.id} and title_id=#{titleId}
+	</update>
+	<update id="updateEntity">
+		UPDATE cms_share SET
+		SHARE_COUNT=#{0},
+		UPDATE_DATE=#{1}
+		WHERE ID = #{2}
+	</update>
+	<update id="delete">
+		UPDATE cms_share SET
+		del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+
+	<update id="MergeArticle">
+		UPDATE cms_share SET
+		category_id=#{1}
+		<where>
+			category_id = #{0}
+			<if test="#{2} != null">
+				AND title_id=#{2}
+			</if>
+		</where>
+	</update>
+
+	<update id="MergeCategory">
+		UPDATE cms_share SET
+		category_id=#{1}
+		<where>
+			category_id = #{0}
+
+		</where>
+	</update>
+
+</mapper>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.RecommendDao">
+
+<sql id="cmsRecommendDaoColumns">
+a.id AS "id",
+a.category_id AS "category.id",
+a.recom_date AS "recomDate",
+a.create_by AS "createBy.id",
+a.recom_count AS "recomCount",
+a.del_flag AS "delFlag",
+a.update_date AS "updateDate",
+<!--  a.update_by AS "updateBy.id",-->
+a.title_id AS "titleId",
+a.title AS "title"
+
+</sql>
+
+
+<sql id="cmsRecommendDaoJoins">
+</sql>
+
+<select id="getRecommend" resultType="Recommend">
+		SELECT 
+			<include refid="cmsRecommendDaoColumns"/>
+		FROM cms_recommend a
+		<include refid="cmsRecommendDaoJoins"/>
+		WHERE a.title_id = #{titleid} 
+	</select>
+	
+<select id="get" resultType="Recommend">
+		SELECT 
+			<include refid="cmsRecommendDaoColumns"/>
+		FROM cms_recommend a
+		<include refid="cmsRecommendDaoJoins"/>
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</select>
+	
+	<!-- add hefeng -->
+	<select id="getRecommendList" resultType="Recommend">
+		SELECT 
+			<include refid="cmsRecommendDaoColumns"/>
+		FROM cms_recommend a
+		<include refid="cmsRecommendDaoJoins"/>
+		WHERE a.title_id = #{titleid}
+		and a.del_flag='2'
+		and a.create_by is not NULL
+	</select>
+	<!-- end hefeng -->
+
+<select id="findList" resultType="Recommend">
+		SELECT 
+		ca.title as "articletitle",
+		c.name AS "category.name",
+		ca.update_date AS "articleupdateDate",
+			<include refid="cmsRecommendDaoColumns"/>
+		FROM cms_recommend a
+		<include refid="cmsRecommendDaoJoins"/>
+		JOIN cms_category c ON c.id = a.category_id
+		JOIN cms_article ca ON ca.id = a.title_id
+		<where>
+			a.del_flag = #{delFlag} and ca.del_flag='0'
+			<if test="title != null and title != ''">
+				AND ca.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by  = #{createBy.id}
+			</if>
+			<if test="category.id != null and category.id != ''">
+				AND (a.category_id = #{category.id}
+				<if test="category.parentIds != null and category.parentIds != ''">
+					or c.parent_ids like 
+						<if test="dbName == 'oracle'">'%'||#{category.id}||'%'</if>
+						<if test="dbName == 'mysql'">CONCAT('%,', #{category.id}, ',%')</if>
+				</if>)
+			</if>
+		</where>
+		ORDER BY a.update_date DESC
+		<!--  <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.recom_date DESC
+			</otherwise>
+		</choose>-->
+		<!--  SELECT * FROM cms_recommend-->
+	</select>
+	
+	<select id="findAllList" resultType="Recommend">
+		SELECT 
+			<include refid="cmsRecommendDaoColumns"/>
+		FROM cms_recommend a
+		<include refid="cmsRecommendDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>	
+		ORDER BY a.recom_date DESC	
+		<!--  <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.recom_date DESC
+			</otherwise>
+		</choose>-->
+	</select>
+	
+	<insert id="insert" >
+		INSERT INTO cms_recommend(
+		id,
+		category_id,
+		recom_date,
+		recom_count,
+		del_flag,
+		update_date,
+		<!--  update_by ,-->
+		create_by,
+		title_id,
+		title
+		) VALUES (
+			#{id},
+			#{category.id},
+			#{recomDate},
+			#{recomCount},
+			#{delFlag},
+			#{updateDate},
+			<!--  #{updateBy.id},-->
+			#{createBy.id},
+			#{titleId},
+			#{title}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE cms_recommend SET
+			<!--  update_by =#{updateBy.id},-->
+			
+			category_id = #{category.id},
+			update_date=#{updateDate},
+			del_flag = #{delFlag}
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</update>
+	
+	<!-- add hefeng -->
+	<update id="deleteUserRecommend">
+		UPDATE cms_recommend SET 
+			update_date=#{updateDate},
+			del_flag = #{delFlag}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE cms_recommend SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="MergeArticle">
+		UPDATE cms_recommend SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+			<if test="#{2} != null">
+				AND title_id=#{2}
+			</if>
+		</where>
+	</update>
+	<update id="MergeCategory">
+		UPDATE cms_recommend SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+			
+		</where>
+	</update>
+</mapper>

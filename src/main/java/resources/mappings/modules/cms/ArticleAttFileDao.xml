@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ArticleAttFileDao">
+	
+	<sql id="cmsArticleAttFileColumns">
+		a.acticle_id 	AS "acticleid",
+		a.id 			AS "id",
+		a.att_file_time AS "attfiletime",
+		a.att_file_name AS "attfilename",
+		a.att_file_size AS "attfilesize",
+		a.att_file_type AS "attfiletype",
+		a.create_by 	AS "createBy.id",
+		a.create_date 	AS "createDate",
+		a.update_by 	AS "updateBy.id",
+		a.update_date	AS "updateDate",
+		a.del_flag 		AS "delFlag"
+	</sql>
+
+	<insert id="insert">
+		INSERT INTO cms_article_att_file(
+			id,
+			acticle_id,
+			att_file_time,
+			att_file_name,
+			att_file_size,
+			att_file_type,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			att_file_key,
+			del_flag,
+			attfile_temp_guid
+		) VALUES (
+			#{id},
+			#{acticleid},
+			#{attfiletime},
+			#{attfilename},
+			#{attfilesize},
+			#{attfiletype},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{attfilekey},
+			#{delFlag},
+			#{attfile_temp_guid}
+		)
+	</insert>
+	
+	<select id="getArticleAttFileNumber" resultType="String">
+		SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE 
+		WHERE ACTICLE_ID=  #{articleID}
+		AND DEL_FLAG='0' AND ISPOSTARTICLE='1'
+	</select>
+	
+	
+	<select id="findListFile" resultType="ArticleAttFile">
+		SELECT 
+		a.acticle_id 	AS "acticleid",
+		a.id 			AS "id",
+		a.att_file_time AS "attfiletime",
+		a.att_file_name AS "attfilename",
+		a.att_file_size AS "attfilesize",
+		a.att_file_type AS "attfiletype",
+		a.att_file_key	AS "attfilekey",
+		a.create_by 	AS "createBy.id",
+		a.create_date 	AS "createDate",
+		a.update_by 	AS "updateBy.id",
+		a.update_date	AS "updateDate",
+		a.del_flag 		AS "delFlag"
+			FROM cms_article_att_file a
+			WHERE
+			a.acticle_id = #{acticleid}
+			AND
+			a.del_flag = 0
+			AND
+			a.ispostarticle = 1
+			
+	</select>
+	
+	
+		<select id="findFile" resultType="ArticleAttFile">
+		SELECT 
+		a.acticle_id 	AS "acticleid",
+		a.id 			AS "id",
+		a.att_file_time AS "attfiletime",
+		a.att_file_name AS "attfilename",
+		a.att_file_size AS "attfilesize",
+		a.att_file_type AS "attfiletype",
+		a.att_file_key	AS "attfilekey",
+		a.create_by 	AS "createBy.id",
+		a.create_date 	AS "createDate",
+		a.update_by 	AS "updateBy.id",
+		a.update_date	AS "updateDate",
+		a.del_flag 		AS "delFlag"
+			FROM cms_article_att_file a
+			WHERE
+			a.id = #{id}
+			AND
+			a.del_flag = 0
+			AND
+			a.ispostarticle = 1
+			
+	</select>
+	
+	<!-- add hefeng 返回一行记录，不是list-->
+	<select id="findRecordByAttFileKey" resultType="ArticleAttFile">
+		SELECT 
+		a.acticle_id 	AS "acticleid",
+		a.id 			AS "id",
+		a.att_file_time AS "attfiletime",
+		a.att_file_name AS "attfilename",
+		a.att_file_size AS "attfilesize",
+		a.att_file_type AS "attfiletype",
+		a.att_file_key	AS "attfilekey",
+		a.create_by 	AS "createBy.id",
+		a.create_date 	AS "createDate",
+		a.update_by 	AS "updateBy.id",
+		a.update_date	AS "updateDate",
+		a.del_flag 		AS "delFlag"
+			FROM cms_article_att_file a
+			WHERE
+			a.att_file_key = #{attfilekey}
+			AND
+			a.del_flag = 0
+			AND
+			a.ispostarticle = 1
+	</select>
+	<!-- 查找附件的不同 -->
+	<select id="finddiffByGuid" resultType="ArticleAttFile">
+		SELECT 
+			a.ispostarticle
+			FROM cms_article_att_file a
+			WHERE
+			a.attfile_temp_guid=#{temp_guid}
+	</select>
+	<!-- end -->
+	
+	<update id="delete">
+		UPDATE cms_article_att_file SET 
+			del_flag = 1
+		WHERE id = #{id}
+	</update>
+	
+	<update id="deleteList">
+		UPDATE cms_article_att_file SET 
+			del_flag = 1
+		WHERE acticle_id = #{acticleid}
+	</update>
+	<update id="postattfile">
+		UPDATE cms_article_att_file SET 
+		ispostarticle = 1
+		WHERE attfile_temp_guid = #{temp_guid}
+	</update>
+	
+<!--  
+	<update id="update">
+		UPDATE cms_article_att_file SET 	
+			acticle_id = #{acticle_id}
+		WHERE acticle_id = #{isnew}
+	</update>
+
+	<select id="findListArticleAttFile" resultType="ArticleAttFile">
+		SELECT 
+			id,
+			acticle_id,
+			att_file_url,
+			att_file_name,
+			att_file_size,
+			att_file_type,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			att_file_key
+		FROM cms_article_att_file  
+		WHERE
+			acticle_id = ${id}		
+	</select>
+	-->
+
+</mapper>

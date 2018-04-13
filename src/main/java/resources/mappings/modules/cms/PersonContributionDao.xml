@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.PersonContributionDao">
+	<sql id="contributionColumns">
+		c.id,
+ 		c.login_name,
+ 		count(c.article_id)
+	</sql>
+	
+	<sql id="contributionFrom"> 
+		(
+ 			select
+ 			u.id,
+ 			u.login_name,
+ 			a.create_by,
+ 			a.id as article_id
+ 			from 
+ 			sys_user u,
+ 			cms_article a 
+ 			where
+ 			a.create_by =u.id
+ 		) c
+	</sql>
+	
+	<select id="getUserToActi" resultType="PersonContribution">
+		select 
+      		c.id as "userid",
+ 			c.name as "username" ,
+ 			c.countarticle
+			from 
+    			(
+    			SELECT
+					c.id ,
+ 					c.name,
+ 					count(c.article_id) as countarticle
+				FROM
+				(
+ 					select
+ 					u.id,
+ 					u.name,
+ 					a.create_by,
+ 					a.id as article_id 
+ 					from 
+ 					sys_user u,
+ 					cms_article a,
+ 					 cms_category c
+ 					where
+ 					a.create_by =u.id and a.DEL_FLAG='0' and u.DEL_FLAG='0' and c.id=a.category_id and c.del_flag='0'
+ 				) c
+				group by c.id, c.name
+    			order by countarticle desc
+    			) c
+			where 
+     			rownum &lt; 6
+	</select>
+	
+	
+	<insert id="insertContributionData" >
+		INSERT INTO CMS_PERSON_CONTRIBUTION(USER_ID,USER_NAME,COUNT_ARTICLE)
+		<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">		
+				SELECT
+				#{item.userid},
+				#{item.username},
+				${item.countarticle} 
+				FROM DUAL
+		</foreach>
+	</insert>
+	
+	
+	<update id="updateContributionData" parameterType="java.util.List">
+			BEGIN  
+        	<foreach collection="list" item="item" index="index" separator=";" >
+        		UPDATE CMS_PERSON_CONTRIBUTION
+        		SET
+        			USER_ID=#{item.userid},
+        			USER_NAME=#{item.username},
+        			COUNT_ARTICLE=#{item.countarticle}  		
+				WHERE  USER_ID= #{item.userid}
+            </foreach>
+        	;commit;    
+        END;	
+	</update>
+	
+	
+	<sql id="personColumns">
+		user_id,
+		user_name,
+		COUNT_ARTICLE
+	</sql>
+	<!-- 从新创建的表CMS_PERSON_CONTRIBUTION中查询数据 ,没有传入参数,用默认的传出5条.-->
+	<select id="getContributionData" resultType="PersonContribution">
+	select user_id as "userid",user_name as "username",COUNT_ARTICLE as "countarticle" from CMS_PERSON_CONTRIBUTION order by COUNT_ARTICLE desc
+
+	</select>
+	
+	<select id="getData" resultType="String">
+    	SELECT USER_ID FROM CMS_PERSON_CONTRIBUTION WHERE USER_ID=#{userid}
+    </select>
+    <select id="getAllid" resultType="String">
+    	SELECT USER_ID FROM CMS_PERSON_CONTRIBUTION
+    
+    </select>
+    <delete id="deleteData" parameterType = "java.util.List">
+		DELETE FROM CMS_PERSON_CONTRIBUTION
+		WHERE USER_ID in
+		<foreach collection="list" item = "item" open="(" separator="," close=")">
+		#{item}  
+   		</foreach>
+	</delete>
+	
+	<select id="getOfficeName" resultType="String">
+		SELECT O.NAME FROM SYS_USER U,SYS_OFFICE O WHERE U.OFFICE_ID=O.ID and u.id=#{userid}
+	</select>
+</mapper>

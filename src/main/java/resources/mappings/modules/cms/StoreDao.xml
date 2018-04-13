@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.StoreDao">
+
+<sql id="cmsStoreDaoColumns">
+a.id AS "id",
+a.category_id AS "category.id",
+a.store_count AS "storeCount",
+a.create_by AS "createBy.id",
+a.creater AS "createBy.name",
+a.title AS "title",
+a.store_date AS "storedate",
+a.upload_user_id AS "uploaduserid",
+a.title_id AS "titleId",
+a.del_flag AS "delFlag",
+a.update_by AS "updateBy.id",
+a.update_date AS "updateDate"
+
+</sql>
+
+
+<sql id="cmsStoreDaoJoins">
+</sql>
+
+<select id="getStore" resultType="Store">
+		SELECT 
+			<include refid="cmsStoreDaoColumns"/>
+		FROM cms_mystore a
+		<include refid="cmsStoreDaoJoins"/>
+		WHERE a.title_id = #{titleId} 
+		and a.del_flag='2'
+		and a.create_by is not NULL
+	</select>
+
+<select id="get" resultType="Store">
+		SELECT 
+			<include refid="cmsStoreDaoColumns"/>
+		FROM cms_mystore a
+		<include refid="cmsStoreDaoJoins"/>
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</select>
+
+<select id="findList" resultType="Store">
+		SELECT 
+		ca.title as "articletitle",
+		c.name AS "category.name",
+		ca.update_date AS "articleupdateDate",
+			<include refid="cmsStoreDaoColumns"/>
+		FROM cms_mystore a
+		<include refid="cmsStoreDaoJoins"/>
+		JOIN cms_category c ON c.id = a.category_id
+		JOIN cms_article ca ON ca.id = a.title_id
+		<where>
+			a.del_flag = '2' and a.create_by=#{createBy.id} and ca.del_flag='0'
+			<if test="title != null and title != ''">
+				AND ca.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+			</if>
+			<if test="category.id != null and category.id != ''">
+				AND (a.category_id = #{category.id}
+				<if test="category.parentIds != null and category.parentIds != ''">
+					or c.parent_ids like 
+						<if test="dbName == 'oracle'">'%'||#{category.id}||'%'</if>
+						<if test="dbName == 'mysql'">CONCAT('%,', #{category.id}, ',%')</if>
+				</if>)
+			</if>
+		</where>
+		ORDER BY a.update_date DESC	
+		<!--  <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.store_date DESC
+			</otherwise>
+		</choose>-->
+		<!-- SELECT 
+		<include refid="cmsStoreDaoColumns"/>
+		FROM cms_mystore a
+		<where>  
+			a.del_flag = '2' and a.create_by=#{createBy.id}
+		</where> -->
+	</select>
+	
+	<select id="findAllList" resultType="Store">
+		SELECT 
+			<include refid="cmsStoreDaoColumns"/>
+		FROM cms_mystore a
+		<include refid="cmsStoreDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>	
+		ORDER BY a.update_date DESC	
+		<!--  <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.store_date DESC
+			</otherwise>
+		</choose>-->
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO cms_mystore(
+		
+		id,
+		category_id,
+		store_count,
+		create_by,
+		creater,
+		title,
+		store_date ,
+		upload_user_id ,
+		title_id ,
+		del_flag ,
+		update_by ,
+		update_date
+		) VALUES (
+			#{id},
+			#{category.id},
+			#{storeCount},
+			#{createBy.id},
+			#{createBy.name},
+			#{title},
+			#{storeDate},
+			#{upLoadUserId},
+			#{titleId},
+			#{delFlag},
+			#{updateBy.id},
+			#{updateDate}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE cms_mystore SET 	
+			category_id = #{category.id},
+			update_by =#{updateBy.id},
+			update_date=#{updateDate},
+			del_flag = #{delFlag},
+			store_date=#{updateDate}
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</update>
+	
+	<update id="delete">
+		UPDATE cms_mystore SET 
+			store_count=#{storeCount},
+			title=#{title},
+			update_by =#{updateBy.id},
+			update_date=#{updateDate},
+			del_flag = #{delFlag}
+			<!--  del_flag = #{DEL_FLAG_DELETE}-->
+		WHERE create_by = #{createBy.id} and title_id=#{titleId}
+	</update>
+	
+	<!-- add hefeng -->
+	<update id="deleteUserStore">
+		UPDATE cms_mystore SET 
+			update_by =#{updateBy.id},
+			update_date=#{updateDate},
+			del_flag = #{delFlag}
+		WHERE id = #{id}
+	</update>
+
+	<update id="MergeArticle">
+		UPDATE cms_mystore SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+			<if test="#{2} != null">
+				AND title_id=#{2}
+			</if>
+		</where>
+	</update>
+	<update id="MergeCategory">
+		UPDATE cms_mystore SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+		</where>
+	</update>
+	<!-- end -->
+</mapper>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ArticleLabelDao">
+
+	<select id="findList" resultType="ArticleLabel" >
+		select c.id as "id",
+		c.article_id as "articleid",
+		a.HITS as "hits",
+		c.category_id as "category.id",
+		t.name as "category.name",
+		a.title as "title",
+		u.name  as "createBy.name",
+		a.CREATE_DATE as "createDate"
+      	from 
+      	cms_label_conn_arti c,
+      	cms_article a,
+      	cms_category t,
+      	sys_user u
+      	where  c.label_id=#{labelid} and c.article_id=a.id and a.del_flag='0' and t.id=c.category_id and u.id=a.CREATE_BY
+      	<if test="categorylist!=null and categorylist!=''">
+      		and c.category_id in (${categorylist})
+      	</if>
+      	<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+		</if>
+		<if test="category.id != null and category.id !=''">
+				AND c.category_id = #{category.id}
+		</if>
+		order by a.CREATE_DATE desc
+	</select>
+	
+	<delete id="delete">
+		DELETE FROM CMS_LABEL_CONN_USER 
+		WHERE	USER_ID=#{articleid} and LABEL_ID={labelid}
+	</delete>
+	<insert id="batchInsert">
+		insert into cms_label_conn_arti(ID,LABEL_ID,ARTICLE_ID,CATEGORY_ID)
+		<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+			select
+				#{item.id},
+				#{item.labelid},
+				#{item.articleid},
+				#{item.category.id}
+			from dual
+		</foreach>
+	</insert>
+	<update id="updateInsertArticle" >
+		update cms_article
+		set label_list=#{0}
+		where id=#{1}
+	</update>
+	<select id="findArticlesByLabelId" resultType="Article">
+		select 
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select count(l.label_id) from cms_label l,cms_label_conn_arti la where l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as "posid"
+		from 
+			CMS_ARTICLE a,
+			CMS_CATEGORY c,
+			CMS_ARTICLE_DATA ad
+		where a.id in(select article_id from CMS_LABEL_CONN_ARTI where label_id=#{0})  and a.del_flag='0'  and a.category_id =c.id and ad.id=a.id
+		order by a.create_date desc
+	</select>
+	
+
+	<select id="findLabelByArticle" resultType="Label">
+	SELECT 	a.label_id as "id",l.label_value as "labelvalue",l.del_flag as "delFlag"
+		FROM
+				CMS_LABEL_CONN_ARTI a,cms_label l
+		WHERE
+				a.ARTICLE_ID=#{articleId} and a.label_id=l.label_id
+	
+	</select>
+
+
+	
+	<select id="getArticleLabel" resultType="String">
+		SELECT L.LABEL_VALUE
+		FROM 
+			CMS_LABEL_CONN_ARTI A,
+			CMS_LABEL L 
+		WHERE A.ARTICLE_ID=#{articleid} AND L.LABEL_ID=A.LABEL_ID AND DEL_FLAG='0'
+	</select>
+	<delete id="batchdelete" >
+		DELETE FROM CMS_LABEL_CONN_ARTI
+		WHERE ARTICLE_ID=#{articleid} AND LABEL_ID IN 
+		<foreach item="item" index="index" collection="labelids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	</delete>
+	<select id="findLabelId" resultType="String">
+		SELECT LABEL_ID
+		FROM CMS_LABEL_CONN_ARTI
+		WHERE ARTICLE_ID=#{articleid}
+	
+	</select>
+
+</mapper>

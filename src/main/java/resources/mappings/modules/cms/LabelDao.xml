@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.LabelDao">
+
+
+	<select id="getHotLabelData" resultType="Label">
+		select 	a.LABEL_ID as "id", 
+				a.LABEL_VALUE as "labelvalue",
+				a.countarticle as "countarticle" 
+        from 	
+        (select 
+        l.label_id,
+        l.label_value,
+        (select count(c.id) from cms_article a,cms_label_conn_arti r,cms_category c where l.label_id=r.label_id and a.id=r.article_id and a.category_id=c.id and a.del_flag='0' and c.del_flag='0' ) as countarticle
+        from
+        cms_label l
+         where l.DEL_FLAG='0' 
+        order by countarticle desc) a 
+		where 
+				rownum &lt; 6
+	</select>
+	
+	
+	
+	<!-- 批量删除cms_label表中的数据 -->
+	<delete id="batchdeleteLabelData">
+		DELETE FROM CMS_LABEL
+		WHERE LABEL_ID in
+		<foreach collection="list" item = "item" open="(" separator="," close=")">
+		#{item}  
+   		</foreach>
+	</delete>
+	<insert id="batchinsert" parameterType="java.util.List">
+		INSERT INTO CMS_LABEL_COUNT(LABEL_ID,COUNT_ARTICLE)
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				SELECT
+					#{item.id},
+					#{item.countarticle}
+				FROM DUAL
+			</foreach>
+	</insert>
+	
+	<insert id="insertAll">
+		INSERT INTO CMS_LABEL(LABEL_ID,LABEL_VALUE,LABEL_CONTENT,DEL_FLAG,USER_ID,CREATEDATE,PARENT_ID,PARENT_IDS,ISSYS)
+			<foreach close=")" collection="list" item="item" index="index" separator="union" open="(">
+				SELECT
+					#{item.id},
+					#{item.labelvalue},
+					#{item.labelcontent},
+					#{item.delFlag},
+					#{item.userid},
+					#{item.createDate},
+					#{item.pid},
+					#{item.pids},
+					#{item.issys}
+				FROM DUAL
+			</foreach>
+	</insert>
+	
+	<select id="getLabelData" resultType="Label">
+		SELECT 
+			c.label_id as "id",
+			l.label_value as "labelvalue",
+			c.count_article as "countarticle"
+		from
+			cms_label_count c,cms_label l
+		where
+			c.label_id=l.label_id
+		order by
+			count_article desc
+	</select>
+	<select id="getAllid" resultType="String">
+		SELECT 
+			LABEL_ID
+		FROM 
+			CMS_LABEL_COUNT
+	</select>
+	<update id="batchupdate" parameterType="java.util.List">
+		BEGIN
+			<foreach collection="list" item="item"  index="index" separator=";" >
+				UPDATE CMS_LABEL_COUNT
+				SET
+					LABEL_ID=#{item.id},
+					COUNT_ARTICLE=#{item.countarticle}
+				WHERE
+					LABEL_ID=#{item.id}			
+			</foreach>
+			;commit;	
+		 END;
+	</update>
+	<delete id="batchdelete" parameterType = "java.util.List"> 
+		DELETE FROM CMS_LABEL_COUNT
+		WHERE LABEL_ID in
+		<foreach collection="list" item = "item" open="(" separator="," close=")">
+		#{item}  
+   		</foreach>
+	</delete>
+	<select id="getAllLabel" resultType="Label">
+		SELECT LABEL_ID AS "id",
+		LABEL_VALUE as "labelvalue",
+		LABEL_CONTENT as "labelcontent",
+		DEL_FLAG as "delFlag"
+		FROM CMS_LABEL
+		WHERE DEL_FLAG='0'
+		<if test="labelvalue !=null and labelvalue !=''">
+			and LABEL_VALUE=#{labelvalue}	
+		</if>
+		order by CREATEDATE desc
+	</select>
+	<insert id="insert">
+		INSERT INTO CMS_LABEL(LABEL_ID,LABEL_VALUE,LABEL_CONTENT,DEL_FLAG,USER_ID,CREATEDATE,PARENT_ID,PARENT_IDS,ISSYS)
+		VALUES(#{id},#{labelvalue},#{labelcontent},#{delFlag},#{userid},#{createDate},#{pid},#{pids},#{issys})
+	</insert>
+	
+	<update id="update">
+		UPDATE CMS_LABEL
+		SET
+			DEL_FLAG=#{delFlag}
+			<if test="labelvalue !=null">
+			,LABEL_VALUE=#{labelvalue}
+			</if>
+			<if test="labelcontent !=null">
+			,LABEL_CONTENT=#{labelcontent}
+			</if>
+			<if test="pid !=null">
+			,parent_id=#{pid}
+			</if>
+			<if test="pids !=null">
+			,parent_ids=#{pids}
+			</if>
+		WHERE
+			LABEL_ID=#{id}	
+	</update>
+	<!-- 批量更新标签表中的内容 -->
+	<update id="batchUpdateLabelData">
+		BEGIN
+			<foreach collection="list" item="item"  index="index" separator=";" >
+				UPDATE CMS_LABEL
+				SET
+					LABEL_ID=#{item.id},
+					PARENT_ID=#{item.pid},
+					PARENT_IDS=#{item.pids},
+					DEL_FLAG=#{item.delFlag}
+				WHERE
+					LABEL_ID=#{item.id}			
+			</foreach>
+			;commit;	
+		 END;
+	</update>
+	
+	
+	<delete id="delete">
+		DELETE FROM CMS_LABEL
+		WHERE LABEL_ID=#{id}
+	</delete>
+	<select id="get" resultType="Label">
+		select 	l.label_id as "id",
+				l.label_value as "labelvalue",
+				l.label_content as "labelcontent",
+				l.del_flag as "delFlag",
+				l.user_id as "userid",
+        		l.parent_id as "pid",
+        		l.parent_ids as "pids",
+        		u.name as "createBy.name",
+        		l.createdate as "createDate",
+				(select label_value from cms_label where label_id=l.parent_id) as "pname",
+				l.ISSYS as "issys",
+				(select count(t.id) from cms_label_conn_arti t,cms_article r where t.label_id=l.label_id and r.id=t.article_id and r.del_flag='0' ) as "countarticle",
+  				(select count(u.id) from cms_label_conn_user u,sys_user s where u.user_id=s.id and s.del_flag='0' and u.label_id=l.label_id ) as "countuser"
+				
+		from cms_label l,sys_user u
+		where l.label_id=#{id} and u.id=l.user_id
+	</select>
+	<select id="findList" resultType="Label">
+		select 	
+        l.label_id as "id",
+        l.label_value as "labelvalue",
+				l.label_content as "labelcontent",
+        (select count(u.id) from cms_label_conn_user u,sys_user s where u.label_id=l.label_id and s.id=u.user_id and s.del_flag='0') as "countuser",
+				(select count(*) from cms_label_conn_arti a,cms_article r where a.article_id=r.id and r.del_flag='0' and a.label_id=l.label_id) as "countarticle",
+      	l.del_flag as "delFlag",
+      	l.CREATEDATE as "createDate",
+      	u.name as "createBy.name"
+      from 	cms_label l,sys_user u
+      where l.del_flag=#{delFlag} and l.user_id=u.id
+      		<if test="labelvalue !=null and labelvalue !=''">
+      			and l.LABEL_VALUE Like '%'||#{labelvalue}||'%'
+      		</if>
+      		<if test="userid !=null and userid !=''">
+      			and u.id=#{userid}
+      		</if>
+      order by l.CREATEDATE desc
+	</select>
+	<select id="batchget" resultType="String">
+		select label_value
+		from cms_label
+		where label_id in 
+		<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	
+	
+	</select>
+	
+	
+	<update id="MergeArticle">
+		UPDATE CMS_LABEL_CONN_ARTI SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+			<if test="#{2} != null">
+				AND article_id=#{2}
+			</if>
+		</where>
+	</update>
+	<!-- 查看是否是重复的标签 -->
+	<select id="findRepeatLabelName" resultType="String">
+		SELECT LABEL_VALUE
+		FROM CMS_LABEL
+		WHERE
+			LABEL_VALUE=#{labelName}
+	</select>
+	
+	<update id="MergeCategory">
+		UPDATE CMS_LABEL_CONN_ARTI SET 
+			category_id=#{1}
+		<where>
+			category_id = #{0}
+			
+		</where>
+	</update>
+	
+	<select id="getUserUnexamineLabel" resultType="Label">
+		select 
+			label_id as "id",
+			label_value as "labelvalue",
+			DEL_FLAG as "delFlag" 
+		from 
+			cms_label 
+		where 
+			user_id=#{userid} and del_flag='1'
+			<if test="labelvalue!=null and labelvalue !=''">
+				and label_value=#{labelvalue}
+			</if>
+	</select>
+	<select id="findUnMergeLabel" resultType="Label">
+		select 
+  			label_id as "id",
+  			label_value as "labelvalue"
+		from
+  			cms_label
+		where
+  			del_flag='0' and label_id != #{id} and issys='1' and parent_id !='1'
+  		order by CREATEDATE desc
+	</select>
+	<update id="updateMergeLabelbyArticle">
+		update CMS_LABEL_CONN_ARTI set
+			label_id=#{0}
+		where
+			label_id=#{1}
+	
+	</update>
+	<update id="updateMergeLabelbyUser">
+		update CMS_LABEL_CONN_user set
+			label_id=#{0}
+		where
+			label_id=#{1}
+	
+	</update>
+	<update id="updateMergeLabel">
+		update cms_label set
+			label_value=#{1}
+		where
+			label_id=#{0}
+	</update>
+	<select id="findRepeatMergeLabelByArticle" resultType="String">
+		select 
+  			a.article_id
+		from       
+  			(select article_id from cms_label_conn_arti where label_id=#{0}) l,
+  			cms_label_conn_arti a
+		where 
+  			a.label_id=#{1} and l.article_id=a.ARTICLE_ID
+	</select>
+	<select id="findRepeatMergeLabelByUser" resultType="String">
+		select 
+  			a.user_id 
+		from       
+  			(select user_id from cms_label_conn_user where label_id=#{0}) l,
+  			cms_label_conn_user a
+		where 
+  			a.label_id=#{1} and l.user_id=a.user_id
+	</select>
+	<delete id="deleteMergeLabelbyArticle">
+		delete from cms_label_conn_arti
+		where label_id=#{labelid} and article_id in
+			<foreach item="item" index="index" collection="articleids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	
+	</delete>
+	<delete id="deleteMergeLabelbyUser">
+		delete from cms_label_conn_user
+		where label_id=#{labelid} and user_id in
+			<foreach item="item" index="index" collection="userids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	
+	</delete>
+	
+	<select id="findRelationLabel" resultType="Label">
+		select 
+        	r.rela_id as "id",
+        	l.label_value as "labelvalue",
+        	l.DEL_FLAG as "delFlag"
+    	from 
+        	cms_label l,
+        	cms_label_relation r
+    	where 
+        	r.rela_id=l.label_id and r.label_id=#{id} 
+	</select>
+	<select id="getAllRelationid" resultType="String">
+		select rela_id from cms_label_relation where label_id=#{id}
+	</select>
+	<insert id="insertRelationLabel">
+		INSERT INTO CMS_LABEL_RELATION(ID,LABEL_ID,RELA_ID)
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				SELECT
+					#{item.id},
+					#{item.mainid},
+					#{item.relationid}
+				FROM DUAL
+			</foreach>
+	</insert>
+	<delete id="deleteRelationLabel">
+		delete from cms_label_relation
+		where label_id=#{labelid} and rela_id in
+			<foreach item="item" index="index" collection="relaids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	</delete>
+	<select id="getLabelTreeData" resultType="Label">
+		select
+            a.label_id as "id",
+            a.label_value as "labelvalue",
+            a.parent_id as "pid",
+            a.DEL_FLAG as "delFlag",
+            a.ISSYS as "issys",
+            a.USER_ID as "userid",
+            a.parent_ids as "pids"
+        from 
+            cms_label a
+        order by issys desc,createdate desc 
+	</select>
+	<select id="batchgetLabelData" resultType="Label">
+		select 
+  			a.label_id as "id",
+  			a.label_value as "labelvalue",
+  			(select count(t.id) from cms_label_conn_arti t,cms_article r where t.label_id=a.label_id and r.id=t.article_id and r.del_flag='0' ) as "countarticle",
+  			(select count(u.id) from cms_label_conn_user u,sys_user s where u.user_id=s.id and s.del_flag='0' and u.label_id=a.label_id ) as "countuser"
+		from 
+  			cms_label a
+		where 
+  			a.label_id in 
+  			<foreach item="item" index="index" collection="list" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	</select>
+	<insert id="insertLabelByCategoryId">
+		INSERT INTO CMS_LABEL_CONN_CATE(ID,LABEL_ID,CATEGORY_ID)
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				SELECT
+					#{item.id},
+					#{item.relationid},
+					#{item.categoryid}
+				FROM DUAL
+			</foreach>
+	</insert>
+	<update id="updateLabelByCategoryId">
+		UPDATE CMS_LABEL_CONN_CATE
+		SET
+			category_id=#{categoryid}
+		where
+			label_id in 
+			<foreach item="item" index="index" collection="ids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	</update>
+	<delete id="deleteLabelByCategoryId">
+		delete from cms_label_conn_cate
+		where
+			category_id=#{categoryid} and
+			label_id in 
+			<foreach item="item" index="index" collection="ids" 
+                         open="(" separator="," close=")">
+                        #{item}
+            </foreach>
+	</delete>
+	<select id="findLabelByCategoryId" resultType="Label">
+		SELECT 
+			l.label_id as "id",
+			l.label_value as "labelvalue",
+			c.category_id as "categoryid"
+		FROM
+			cms_label l,
+			cms_label_conn_cate c
+		WHERE
+			c.category_id=#{categoryid} and c.label_id=l.label_id
+	</select>
+	
+	<!-- 根据categoryid查出当前所有关联标签 -->
+	<select id="getAllLabeIdByCategoryId" resultType="String">
+		select distinct label_id
+		from 
+			cms_label_conn_cate 
+		where 
+			category_id=#{categoryid}
+	</select>
+	<!-- end by wuwq6 -->
+	
+	<!-- 根据categoryid和labelid对应找到articleid -->
+	<select id="findArticleIdByOld" resultType="String">
+		select distinct article_id 
+		from 
+			cms_label_conn_arti
+		where 
+				category_id=#{categoryid} and
+				label_id in 
+				<foreach item="item" index="index" collection="oldlabelIdList" open="(" separator="," close=")" >
+					#{item}
+				</foreach>
+	</select>
+	<!-- end by wuwq6 -->
+	
+	<!-- 删除知识和标签旧的关联关系 -->
+	<delete id="deleteOldRelation">
+		delete from cms_label_conn_arti	
+		where 
+				category_id=#{categoryid} and
+				label_id in 
+				<foreach item="item" index="index" collection="oldlabelIdList" open="(" separator="," close=")" >
+					#{item}
+				</foreach>
+	</delete>
+	<!-- end by wuwq6 -->
+	
+	<!-- 插入最新的知识与标签关联关系  -->
+	<insert id="insertNewRelation">
+		insert into cms_label_conn_arti(label_id,article_id,category_id,id)
+		values(#{labelid},#{articleid},#{categoryid},#{id})
+	</insert>
+	<!-- end by wuwq6 -->
+	
+	<!-- 
+	<select id="findArticleIdByCategoryId" resultType="String">
+		select article_id
+		from 
+			cms_label_conn_arti
+		where 
+			category_id=#{categoryid} and label_id is null
+	</select> -->
+	<!-- 根据分类id在知识表里找关联的知识id(原来分类下不带标签的情况) -->
+	<select id="findArticleIdByCategoryIdFromArticle" resultType="String">
+		select distinct id
+		from cms_article
+		where category_id = #{categoryid}
+	</select>
+	<!-- end by wuwq6 -->
+	
+	<!-- 删除原来分类下没有标签的关联关系 
+	<delete id="deleteOldRelationByArticleId">
+		delete from cms_label_conn_arti
+		where 
+			article_id in 
+				<foreach item="item" index="index" collection="articleIdList" open="(" separator="," close=")" >
+					#{item}
+				</foreach>
+	</delete>   -->
+	<!-- end by wuwq6 -->
+	
+	<!-- 根据分类id和标签id删除知识和标签关联表中的关系 -->
+	<delete id="deleteOldRelationByCategoryIdAndLabelId">
+		delete from cms_label_conn_arti
+		where
+			category_id =#{categoryid} and label_id=#{labelid}
+	</delete>
+	<!-- end by wuwq6 -->
+	
+	<!-- 查找该分类下知识和标签关联表中是否含有特定标签id -->
+	<select id="findSpecificLabelId" resultType="String">
+		select label_id from cms_label_conn_arti
+		where
+			label_id=#{labelid} and category_id=#{categoryid}
+	</select>
+	<!-- end by wuwq6 -->
+	
+	<!-- 查找分类和标签关联表里是否有重复数据，返回条数 -->
+	<select id="findDoubleData1" resultType="String">
+		select id from cms_label_conn_cate
+		where 
+			category_id=#{categoryid} and
+			label_id in
+			<foreach item="item" index="index" collection="newlabelIdList" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</select>
+	<!-- end yb wuwq6 -->
+	
+	<!-- 删除标签和分类关联表中的重复数据 -->
+	<delete id="deleteDoubleData1">
+		delete from cms_label_conn_cate
+		where
+			category_id=#{categoryid} and
+			label_id in
+			<foreach item="item" index="index" collection="newlabelIdList" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</delete>
+	<!-- end yb wuwq6 -->
+	
+	<!-- 查找知识和标签关联表里是否有重复数据，返回条数 -->
+	<select id="findDoubleData2" resultType="String">
+		select id from cms_label_conn_arti
+		where 
+			label_id=#{labelid} and article_id=#{articleid} and category_id=#{categoryid} 
+	</select>
+	<!-- end yb wuwq6 -->
+	
+	<!-- 删除标签和知识关联表中的重复数据 -->
+	<delete id="deleteDoubleData2">
+		delete from cms_label_conn_arti
+		where
+			label_id=#{labelid} and article_id=#{articleid} and category_id=#{categoryid} 
+	</delete>
+	<!-- end yb wuwq6 -->
+	
+	<!-- 2017-11-08新增 -->
+	<select id="getLabelParentIds" resultType="Label">
+		select
+            a.label_id as "id",
+            a.label_value as "labelvalue",
+            a.parent_id as "pid",
+            a.DEL_FLAG as "delFlag",
+            a.ISSYS as "issys",
+            a.USER_ID as "userid"
+        from 
+            cms_label a 
+            where a.PARENT_ID = #{parentId} AND a.DEL_FLAG=0 
+        order by issys desc,createdate desc 
+	</select>
+	
+</mapper>

@@ -1,0 +1,1742 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ArticleDao">
+
+	<sql id="cmsArticleColumns">
+		a.id AS "id",
+		a.category_id AS "category.id",
+		a.title AS
+		"title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS
+		"weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.posid AS
+		"posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.examine_id AS "examiner.id",
+		c.name AS "category.name",
+		u.name AS
+		"user.name",
+		u.id AS "user.id",
+		a.is_original AS "isOriginal",
+		a.original_reason AS "originalreason",
+		a.reason AS "reason"
+	</sql>
+	
+	<sql id="cmsArticleJoins">
+		JOIN cms_category c ON c.id = a.category_id
+		JOIN sys_office
+		o ON o.id = c.office_id
+		JOIN sys_user u ON u.id = a.create_by
+	</sql>
+
+	<select id="get" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		,(select d.content from cms_article_data d where d.id=a.id) as
+		"articleData.content"
+		,(select d.copyfrom from cms_article_data d where d.id=a.id) as
+		"articleData.copyfrom"
+		,(select u.name from sys_user u where u.id=a.create_by) as "createBy.name"
+		FROM cms_article a
+		<include refid="cmsArticleJoins" />
+		WHERE a.id = #{id}
+	</select>
+
+	<update id="updateCopyFrom">
+		update cms_article_data set
+		copyfrom=#{copyfrom}
+		WHERE id = #{id}
+	</update>
+
+	<select id="findList" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		,
+		(select u.name from sys_user u where u.id=a.examine_id) AS "examiner.name"
+		FROM cms_article a
+		<include refid="cmsArticleJoins" />
+		<where>
+			a.del_flag = #{delFlag}
+			<if test="title != null and title != ''">
+				AND a.title LIKE
+				<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+			</if>
+			<if test="isOriginal == 3">
+				AND a.is_original ='1'
+			</if>
+			<if test="isOriginal == 4">
+				AND a.is_original ='0'
+			</if>
+			<if test="posid != null and posid != ''">
+				AND a.posid LIKE
+				<if test="dbName == 'oracle'">'%'||#{posid}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{posid}, '%')</if>
+			</if>
+			<if test="category.id != null and category.id != ''">
+				AND (a.category_id = #{category.id}
+				<if test="category.parentIds != null and category.parentIds != ''">
+					or c.parent_ids like
+					<if test="dbName == 'oracle'">'%'||#{category.id}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{category.id}, ',%')</if>
+				</if>
+				)
+			</if>
+			<if test="image != null and image != ''">
+				AND a.image = #{image}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+			<!-- ${sqlMap.dsf} -->
+
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.weight DESC, a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<select id="findAllList" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		FROM cms_article a
+		<include refid="cmsArticleJoins" />
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.weight DESC, a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<!-- add hefeng -->
+
+	<update id="revertMsgFlag">
+		UPDATE cms_article SET
+		remarks=#{1}
+		<where>
+			id = #{0}
+		</where>
+	</update>
+
+	<update id="MergeArticle">
+		UPDATE cms_article SET
+		category_id=#{1}
+		<where>
+			category_id = #{0}
+			<if test="#{2} != null">
+				AND id=#{2}
+			</if>
+		</where>
+	</update>
+
+	<update id="MergeCategory">
+		UPDATE cms_article SET
+		category_id=#{1}
+		<where>
+			category_id = #{0}
+		</where>
+	</update>
+
+	<select id="findArticleId" resultType="String">
+		SELECT
+		wmsys.wm_concat(a.id)
+		FROM cms_article a
+		WHERE a.CREATE_BY = #{id}
+	</select>
+
+	<select id="findListPage" resultType="Article">
+
+		SELECT
+		<include refid="cmsArticleColumns" />
+		FROM cms_article a
+		<include refid="cmsArticleJoins" />
+		<where>
+			a.del_flag = #{delFlag} and a.create_by=#{createBy.id}
+		</where>
+	</select>
+
+	<update id="deleteUserArticle">
+		UPDATE cms_article SET
+		del_flag = '5'
+		WHERE id = #{id}
+	</update>
+	<!-- end -->
+
+	<insert id="insert">
+		INSERT INTO cms_article(
+		id,
+		category_id,
+		title,
+		link,
+		color,
+		image,
+		keywords,
+		description,
+		weight,
+		weight_date,
+		hits,
+		posid,
+		custom_content_view,
+		view_config,
+		create_by,
+		create_date,
+		update_by,
+		update_date,
+		remarks,
+		del_flag,
+		is_original,
+		original_reason,
+		reason
+		) VALUES (
+		#{id},
+		#{category.id},
+		#{title},
+		#{link},
+		#{color},
+		#{image},
+		#{keywords},
+		#{description},
+		#{weight},
+		#{weightDate},
+		#{hits},
+		#{posid},
+		#{customContentView},
+		#{viewConfig},
+		#{createBy.id},
+		#{createDate},
+		#{updateBy.id},
+		#{updateDate},
+		#{remarks},
+		#{delFlag},
+		#{isOriginal},
+		#{originalreason},
+		#{reason}
+		)
+	</insert>
+
+	<update id="update">
+		UPDATE cms_article SET
+		category_id = #{category.id},
+		title = #{title},
+		link = #{link},
+		color = #{color},
+		image = #{image},
+		keywords = #{keywords},
+		description = #{description},
+		weight = #{weight},
+		weight_date = #{weightDate},
+		hits = #{hits},
+		posid = #{posid},
+		custom_content_view = #{customContentView},
+		view_config = #{viewConfig},
+		create_date = #{createDate},
+		update_by = #{updateBy.id},
+		update_date = #{updateDate},
+		remarks = #{remarks},
+		del_flag = #{delFlag},
+		is_original=#{isOriginal},
+		original_reason = #{originalreason},
+		reason =#{reason}
+		WHERE id = #{id}
+	</update>
+
+	<update id="delete">
+		UPDATE cms_article SET
+		del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+
+	<select id="findByIdIn" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		from cms_article a where
+		<where>
+			id in (${id});
+		</where>
+	</select>
+
+	<update id="updateExpiredWeight">
+		update cms_article SET
+		weight = 0
+		WHERE weight &gt; 0 AND weight_date &lt;
+		<if test="dbName == 'oracle'">sysdate</if>
+		<if test="dbName == 'mysql'">CURDATE()</if>
+	</update>
+
+	<update id="updateHitsAddOne">
+		update cms_article set
+		hits = hits+1
+		WHERE id = #{id}
+	</update>
+
+	<select id="findStats" resultType="Category">
+		select max(c.id) AS "id",
+		max(c.name) AS "name",
+		max(cp.id) AS "parent.id",
+		max(cp.name) AS "parent.name",
+		count(*) AS "cnt",
+		sum(a.hits) AS "hits",
+		max(a.update_date) as "updateDate",
+		max(o.id) AS "office.id",
+		max(o.name) AS "office.name"
+		FROM cms_article a
+		RIGHT JOIN cms_category c ON c.id = a.category_id
+		JOIN cms_category cp ON c.parent_id = cp.id
+		JOIN sys_office o ON o.id = c.office_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			AND c.site_id = #{site.id}
+			<if test="office.id != null and office.id != ''">
+				AND (c.office_id = #{office.id} OR o.parent_ids like
+				<if test="dbName == 'oracle'">'%'||#{office.id}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{office.id}, '%')</if>
+				)
+			</if>
+			<if test="beginDate != null and beginDate != ''">
+				AND a.update_date <![CDATA[ >= #{beginDate} ]]>
+			</if>
+			<if test="endDate != null and endDate != ''">
+				AND a.update_date <![CDATA[ <= #{endDate} ]]>
+			</if>
+			<if test="id != null and id != ''">
+				AND (c.id = #{id} OR c.parent_ids LIKE
+				<if test="dbName == 'oracle'">'%'||#{id}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{id}, '%')</if>
+				)
+			</if>
+			group by cp.sort, cp.id, c.sort, c.id
+			order by cp.sort, cp.id, c.sort,
+			c.id
+		</where>
+	</select>
+	<!--begin zhengyu -->
+	<update id="updateDelflag">
+		UPDATE cms_article SET del_flag=#{delFlag} where
+		id=#{id}
+	</update>
+	<update id="updateExaminerId">
+		UPDATE cms_article SET examine_id=#{examiner.id}
+		where id=#{id}
+	</update>
+	<!-- end -->
+
+	<!-- add by wuwq -->
+	<update id="changeReason">
+		UPDATE cms_article SET reason=#{reason} where
+		id=#{id}
+	</update>
+	<!-- end -->
+
+
+	<!-- add by yinshh3 -->
+	<select id="getArticleID" resultType="Article">
+		SELECT A.ID AS "id",A.DEL_FLAG as"delFlag"
+		FROM CMS_ARTICLE A LEFT JOIN SYS_USER U ON A.CREATE_BY=U.ID
+		WHERE U.ID =#{id}
+	</select>
+	<!-- end -->
+	<!-- add by luqibao -->
+	<select id="findArticlesByCategoryId" resultType="Article"
+		parameterType="java.lang.String">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_ARTICLE_DATA ad
+		WHERE a.category_id=#{0} and a.del_flag='0' and a.category_id =c.id
+		and ad.id=a.id
+		order by a.create_date desc
+	</select>
+	<select id="findArticlesBySql" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_ARTICLE_DATA ad
+		WHERE a.id=#{0} and a.del_flag='0' and a.category_id =c.id and
+		ad.id=a.id
+		order by a.create_date desc
+	</select>
+	<select id="findListByIds" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{userid} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_ARTICLE_DATA ad
+		where
+		a.id in
+		<foreach item="item" index="index" collection="ids" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		and a.del_flag='0'
+		and a.category_id =c.id
+		and ad.id=a.id
+		order by a.create_date desc
+	</select>
+
+	<select id="findListByTitle" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_ARTICLE_DATA ad
+		where contains(a.title,#{0})>0 and a.del_flag='0' and a.category_id =c.id
+		and ad.id=a.id
+		order by a.create_date desc
+	</select>
+
+	<select id="findListByLabelValue" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_LABEL L,
+		CMS_LABEL_CONN_ARTi ar,
+		CMS_ARTICLE_DATA ad
+		where contains(l.label_value,#{0})>0 and a.del_flag='0' and a.category_id
+		=c.id
+		and l.del_flag='0' and ar.label_id=l.label_id and a.id=ar.article_id and
+		ad.id=a.id
+		order by a.create_date desc
+	</select>
+	<select id="findListByContent" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		ad.content AS "articleData.content",
+		(select u.name from sys_user u
+		where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from
+		cms_mystore s where s.del_flag='2' and s.CREATE_BY=#{1} and
+		a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select
+		count(l.label_id) from cms_label l,cms_label_conn_arti la where
+		l.del_flag='0' and l.label_id=la.label_id and a.id=la.article_id) as
+		"posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_ARTICLE_DATA ad
+		where a.id in
+		(select id from CMS_ARTICLE_DATA where
+		contains(content,#{0})>0) and a.del_flag='0' and a.category_id =c.id
+		and ad.id=a.id
+		order by a.create_date desc
+	</select>
+
+	<select id="findListByOriginal" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		(select
+		u.name from sys_user u where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from cms_mystore s where s.del_flag='2' and
+		s.CREATE_BY=#{1} and a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND
+		DEL_FLAG='0' AND ISPOSTARTICLE='1') as "articleData.hasAttFile"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c
+		where
+		a.del_flag='0' and a.category_id =c.id and a.IS_ORIGINAL=#{0}
+		order by a.create_date desc
+
+
+	</select>
+
+
+	<select id="findListByUser" resultType="Article">
+		select * from(
+		select A.*, rownum rn
+		from(
+		SELECT
+		u.name as "createBy.name",
+		(select f.name from sys_office f where f.id=u.company_id) as
+		"createBy.company.name",
+		o.name as "createBy.office.name",
+		a.id as "id",
+		a.title as "title",
+		a.hits as "hits",
+		ac.COUNT_RECO as "posid",
+		a.is_original as "isOriginal",
+		a.create_date as "createDate",
+		c.id as "category.id"
+		FROM
+		CMS_ARTICLE a,
+		SYS_USER u,
+		sys_office o,
+		CMS_ARTICLE_COUNT ac,
+		cms_category c
+		WHERE a.del_flag = '0' and u.id=a.create_by and ac.article_id = a.id and
+		o.id=u.office_id and c.id=a.category_id
+		and u.id=#{id}
+		<if test="isChecked == 1">
+			and a.IS_ORIGINAL='1'
+		</if>
+		<if test="isChecked == 2">
+			and a.IS_ORIGINAL='0'
+		</if>
+		<if test="beginDate !=null and beginDate != ''">
+			and a.create_date between #{beginDate} and #{endDate}
+		</if>
+		order by a.create_date desc
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+
+	<select id="getCountArticleByUser" resultType="int">
+		SELECT
+		count(a.id)
+		FROM
+		CMS_ARTICLE a,
+		SYS_USER u
+		WHERE a.del_flag = '0' and u.id=a.create_by and u.id=#{id}
+		<if test="isChecked == 1">
+			and a.IS_ORIGINAL='1'
+		</if>
+		<if test="isChecked == 2">
+			and a.IS_ORIGINAL='0'
+		</if>
+		<if test="beginDate !=null and beginDate != ''">
+			and a.create_date between #{beginDate} and #{endDate}
+		</if>
+
+	</select>
+
+	<select id="findListByExamer" resultType="Article">
+		select * from(
+		select A.*, rownum rn
+		from(
+		select ART.id,
+		u.name as "createBy.name",
+		(select f.name from SYS_OFFICE f where f.id=u.OFFICE_ID) as
+		"createBy.office.name",
+		(select f.name from SYS_OFFICE f where f.id=u.COMPANY_ID) as
+		"createBy.company.name",
+		ART.TITLE as "title",
+		art.HITS as "hits",
+		art.COUNT_RECO as "posid",
+		art.IS_ORIGINAL as "isOriginal",
+		ART.CREATE_DATE as "createDate" ,
+		ART.CATEGORY_ID as "category.id"
+		from SYS_USER u inner join (
+		select a.id,
+		a.TITLE,
+		a.CREATE_BY,
+		a.HITS,
+		c.COUNT_RECO,
+		IS_ORIGINAL,
+		a.CREATE_DATE,
+		a.CATEGORY_ID
+		from CMS_ARTICLE a inner join CMS_ARTICLE_COUNT c on a.id =c.ARTICLE_ID
+		where EXAMINE_ID=#{id}
+		<if test="isChecked == 1">
+			and a.IS_ORIGINAL='1'
+		</if>
+		<if test="beginDate !=null and beginDate != ''">
+			and a.create_date between #{beginDate} and #{endDate}
+		</if>
+		<if test="isChecked == 2">
+			and a.IS_ORIGINAL='0'
+		</if>)
+		art on u.id=art.create_by
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+
+
+	<select id="getCountArticleByExamer" resultType="int">
+		select
+		count(*)
+		from
+		CMS_ARTICLE
+		where EXAMINE_ID=#{id} and del_flag='0'
+		<if test="isChecked == 1">
+			and IS_ORIGINAL='1'
+		</if>
+		<if test="isChecked == 2">
+			and IS_ORIGINAL='0'
+		</if>
+		<if test="beginDate !=null and beginDate != ''">
+			and create_date between #{beginDate} and #{endDate}
+		</if>
+	</select>
+
+
+	<update id="updateDel">
+		update CMS_ARTICLE set del_flag=#{delFlag} where
+		id=#{id}
+	</update>
+	<!-- end -->
+	<sql id="ArticleColumns">
+		a.id AS "id",
+		a.category_id AS "category.id",
+		a.title AS
+		"title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS
+		"weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.posid AS
+		"posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.categoryname AS "category.name",
+		a.username AS "user.name",
+		a.userid
+		AS "user.id",
+		a.hasStore AS "articleData.hasStore",
+		a.hasAttFile AS
+		"articleData.hasAttFile"
+	</sql>
+
+
+	<select id="getNewestArticle" resultType="Article">
+		select
+		<include refid="ArticleColumns" />
+		FROM
+		(SELECT
+		a.id,
+		a.category_id,
+		a.title,
+		a.link,
+		a.color,
+		a.image,
+		a.keywords,
+		a.description,
+		a.weight,
+		a.weight_date,
+		a.hits,
+		a.posid,
+		a.custom_content_view,
+		a.view_config,
+		a.create_by,
+		a.create_date,
+		a.update_by,
+		a.update_date,
+		a.remarks,
+		a.del_flag,
+		c.name as categoryname,
+		u.name as username,
+		u.id as userid,
+		(select count(1) FROM cms_mystore s
+		where s.del_flag='2' and s.CREATE_BY=#{userid} and a.id=s.title_id) as
+		hasStore,
+		(SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE where
+		ACTICLE_ID=a.id AND DEL_FLAG='0' AND ISPOSTARTICLE='1') as hasAttFile
+		FROM
+		cms_article a,
+		cms_category c,
+		sys_user u
+		where
+		u.id=a.create_by and a.category_id=c.id and a.del_flag='0' and
+		a.category_id in
+		<foreach item="item" index="index" collection="categoryids"
+			open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		order by a.update_date DESC) a
+		where ROWNUM &lt;200
+	</select>
+
+	<select id="findAllByCategoryId" resultType="Article">
+		SELECT
+		id AS "id",
+		category_id AS "category.id",
+		title AS "title",
+		link AS "link",
+		color AS "color",
+		image AS "image",
+		keywords AS "keywords",
+		description
+		AS "description",
+		weight AS "weight",
+		weight_date AS "weightDate",
+		hits
+		AS "hits",
+		posid AS "posid",
+		custom_content_view AS "customContentView",
+		view_config AS "viewConfig",
+		create_by AS "createBy.id",
+		create_date AS
+		"createDate",
+		update_by AS "updateBy.id",
+		update_date AS "updateDate",
+		remarks AS "remarks",
+		del_flag AS "delFlag"
+		FROM CMS_ARTICLE
+		where
+		category_id=#{id}
+	</select>
+	<select id="findAllowShareCategoryIds" resultType="String">
+		select
+		DISTINCT ca.category_id from CMS_ARTICLE ca left join CMS_ARTICLE_DATA
+		cad on ca.id=cad.id where cad.allow_share='1'and ca.DEL_FLAG='0'
+	</select>
+	<!-- add by yangshw6 -->
+	<select id="getHotestArticle" resultType="Article">
+		select
+		a.ARTICLE_ID AS "id",
+		a.category_id AS "category.id",
+		a.ARTICLE_TITLE AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS
+		"keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.posid AS "posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.categoryname AS "category.name",
+		a.username AS "user.name",
+		a.userid
+		AS "user.id",
+		a.hasStore AS "articleData.hasStore",
+		a.hasAttFile AS
+		"articleData.hasAttFile"
+		from
+		(select
+		c.ARTICLE_ID,
+		c.ARTICLE_TITLE,
+		a.category_id,
+		a.link,
+		a.color,
+		a.image,
+		a.keywords,
+		a.description,
+		a.weight,
+		a.weight_date,
+		a.hits,
+		a.posid,
+		a.custom_content_view,
+		a.view_config,
+		a.create_by,
+		a.create_date,
+		a.update_by,
+		a.update_date,
+		a.remarks,
+		a.del_flag,
+		ca.name as categoryname,
+		u.name as username,
+		u.id as userid,
+		(select count(1) FROM cms_mystore s where s.del_flag='2' and
+		s.CREATE_BY=#{userid} and a.id=s.title_id) as hasStore,
+		(SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND
+		DEL_FLAG='0' AND ISPOSTARTICLE='1') as hasAttFile,
+		c.COUNT_CLICK*0.3+c.COUNT_RECO*0.3+c.COUNT_COMM*0.1+c.COUNT_SHARE*0.1+c.COUNT_COLLECT*0.2
+		as weights
+		from
+		CMS_ARTICLE_COUNT c,
+		cms_article a,
+		cms_category ca,
+		sys_user u
+		where
+		a.id=c.ARTICLE_ID and a.DEL_FLAG='0' and u.id=a.create_by and a.category_id=ca.id and
+		a.del_flag='0'
+		and
+		a.category_id in (
+		<foreach item="item" index="index" collection="categoryids"
+			separator=",">
+			#{item}
+		</foreach>
+		)
+		order by weights desc) a
+		where
+		ROWNUM &lt; 200
+	</select>
+	<!-- end by yangshw6 -->
+
+
+
+	<!-- add by lnj -->
+	<select id="findListByArticleTitle" resultType="Article">
+		SELECT
+		a.id AS "id",
+		a.category_id AS "category.id",
+		a.title AS "title",
+		a.link AS
+		"link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS
+		"weightDate",
+		a.hits AS "hits",
+		a.posid AS "posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS
+		"viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS
+		"createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS
+		"updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		(select
+		u.name from sys_user u where u.id=a.examine_id) AS "examiner.name"
+		FROM
+		CMS_ARTICLE a
+		where a.del_flag='0'
+		AND a.title LIKE
+		<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+		<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+
+		order by a.create_date desc
+	</select>
+
+	<!-- 查询专题包下的知识 -->
+
+	<!--<select id="getArticlesFromFeaturePackage" resultType="Article"> select 
+		a.id AS "id", a.title AS "title", a.link AS "link", a.color AS "color", a.image 
+		AS "image", a.keywords AS "keywords", a.description AS "description", a.weight 
+		AS "weight", a.weight_date AS "weightDate", a.hits AS "hits", a.posid AS 
+		"posid", a.custom_content_view AS "customContentView", a.view_config AS "viewConfig", 
+		a.create_by AS "createBy.id", a.create_date AS "createDate", a.update_by 
+		AS "updateBy.id", a.update_date AS "updateDate", a.remarks AS "remarks", 
+		a.del_flag AS "delFlag", (select u.name from sys_user u where u.id=a.examine_id) 
+		AS "examiner.name", (select count(1) from cms_mystore s where s.del_flag='2' 
+		and s.CREATE_BY=#{1} and a.id=s.title_id) as "articleData.hasStore", (SELECT 
+		count(ID) FROM CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' 
+		AND ISPOSTARTICLE='1') as "articleData.hasAttFile" FROM cms_article a JOIN 
+		sys_user u ON u.id = a.create_by where a.id in(select article_id from sys_article_featurepackage 
+		where a.del_flag='0' and featurepackage_id=#{id}) ORDER BY a.update_date 
+		DESC </select> -->
+
+	<select id="getArticlesFromFeaturePackage" resultType="Article">
+		select
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.posid AS "posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		c.name as "category.name",
+		u.name AS "user.name",
+		u.id AS "user.id",
+		a.is_original AS "isOriginal",
+		(select u.name from sys_user u where
+		u.id=a.examine_id) AS "examiner.name",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile"
+		from cms_article a
+		LEFT JOIN CMS_CATEGORY c on a.category_id =c.id
+		LEFT JOIN sys_user u ON u.id = a.create_by where a.id in(select article_id
+		from
+		sys_article_featurepackage where
+		featurepackage_id=#{featurePackage.id}) and a.del_flag='0'
+		<if test="articleData.allowshare =='1'">
+			and a.allow_share='1'
+		</if>
+		ORDER BY a.update_date DESC
+	</select>
+
+	<select id="addArticleSearch" resultType="Article">
+		SELECT DISTINCT
+		(A . ID) AS "id",
+		A .category_id AS "category.id",
+		c.
+		NAME AS "category.title",
+		A .title AS "title",
+		A . LINK AS "link",
+		A
+		.color AS "color",
+		A .image AS "image",
+		A .keywords AS "keywords",
+		A
+		.description AS "description",
+		A .weight AS "weight",
+		A .weight_date AS
+		"weightDate",
+		A .hits AS "hits",
+		<!-- A .posid AS "posid", -->
+		A .custom_content_view AS "customContentView",
+		A .create_by AS
+		"createBy.id",
+		A .create_date AS "createDate",
+		A .update_by AS
+		"updateBy.id",
+		A .update_date AS "updateDate",
+		A .remarks AS "remarks",
+		A .del_flag AS "delFlag",
+		(select count(cmsl.label_id) from cms_label
+		cmsl,cms_label_conn_arti cmsla where cmsl.del_flag='0' and
+		cmsl.label_id=cmsla.label_id and A .id=cmsla.article_id) as "posid",
+		c. NAME AS "category.name",
+		U . NAME AS "user.name",
+		U . ID AS
+		"user.id",
+		A .is_original AS "isOriginal",
+		(
+		SELECT
+		U . NAME
+		FROM
+		sys_user U
+		WHERE
+		U . ID = A .examine_id
+		) AS "examiner.name",
+		(
+		SELECT
+		COUNT (ID)
+		FROM
+		CMS_ARTICLE_ATT_FILE
+		WHERE
+		ACTICLE_ID = A . ID
+		AND DEL_FLAG = '0'
+		AND ISPOSTARTICLE = '1'
+		) AS "articleData.hasAttFile"
+		FROM
+		cms_article A
+
+		LEFT JOIN CMS_CATEGORY c on A .category_id = c. ID
+		LEFT JOIN
+		CMS_LABEL_CONN_ARTi ar on A .ID = ar.article_id
+		LEFT JOIN CMS_LABEL L on ar.label_id = l.label_id and l.DEL_FLAG = '0'
+		LEFT JOIN sys_user U on U . ID = A .create_by
+		WHERE
+		A .DEL_FLAG = '0'
+		<if test="categoryids != null and categoryids.size() > 0">
+			and a.category_id in
+			<foreach collection="categoryids" item="item" index="index"
+				open="(" close=")" separator=",">
+				#{item}
+			</foreach>
+		</if>
+		<if test="categoryids.size==0">
+			and a.category_id in('')
+		</if>
+
+		<if test="paramArr != null and paramArr.size() > 0">
+			AND(
+			<foreach collection="paramArr" item="item" index="index"
+				open="" close="" separator="and">
+				a.title like '%'||#{item}||'%'
+				<!-- <if test="item.length==1"> a.title like '%'||#{item}||'%' </if> 
+					<if test="item.length!=1"> contains(a.title,#{item})> </if> -->
+			</foreach>
+			)
+		</if>
+
+		<!-- <if test="paramArr != null and paramArr.size() > 0"> OR <foreach collection="paramArr" 
+			item="item" index="index" open="" close="" separator="and"> l.label_value 
+			like '%'||#{item}||'%' contains(l.label_value,#{item})>0 </foreach> ) </if> -->
+
+		<if test="articleids != null and articleids.size() > 0">
+			and a.id in
+			<foreach collection="articleids" item="item" index="index"
+				open="(" close=")" separator=",">
+				#{item}
+			</foreach>
+		</if>
+
+		ORDER BY a.update_date DESC
+
+	</select>
+
+
+	<select id="getArticlesByCategoryIds" resultType="Article">
+		select
+		a.id AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS "image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.posid AS "posid",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		c.name as "category.name",
+		u.name AS "user.name",
+		u.id AS "user.id",
+		a.is_original AS "isOriginal",
+		(select u.name from sys_user u where
+		u.id=a.examine_id) AS "examiner.name",
+		(SELECT count(ID) FROM
+		CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND DEL_FLAG='0' AND
+		ISPOSTARTICLE='1') as "articleData.hasAttFile"
+		from cms_article a
+		LEFT JOIN CMS_CATEGORY c on a.category_id =c.id
+		LEFT JOIN sys_user u ON u.id = a.create_by where a.del_flag='0'
+		<if test="categoryids != null and categoryids.size() > 0">
+			and a.category_id in
+			<foreach collection="categoryids" item="item" index="index"
+				open="(" close=")" separator=",">
+				#{item}
+			</foreach>
+		</if>
+		ORDER BY a.update_date DESC
+	</select>
+
+	<!-- end by lnj -->
+
+
+	<!-- add by yangshw6 -->
+
+	<!-- 返回结果集设置 -->
+	<resultMap type="java.util.HashMap" id="AppResult">
+		<result property="id" column="id" />
+		<result property="title" column="title" />
+		<result property="authorid" column="authorid" />
+		<result property="authorname" column="authorname" />
+		<result property="clicknum" column="clicknum" />
+		<result property="createtime" column="createtime" javaType="java.util.Date" />
+		<result property="image" column="image" javaType="java.lang.String" />
+		<result property="description" column="description" javaType="java.lang.String" />
+		<result property="content" column="content" javaType="java.lang.String" />
+		<result property="isapp" column="copyfrom" javaType="java.lang.String" />
+	</resultMap>
+	<select id="getAllListByCondition" resultMap="AppResult">
+		select * from(
+		select A.*, rownum rn
+		from(
+		select
+
+		a.id as "id",
+		a.title as "title",
+		a.create_by as "authorid",
+		u.name as "authorname",
+		a.hits as "clicknum",
+		a.create_date as "createtime",
+		da.content as "image",
+		da.copyfrom as "copyfrom"
+		from
+		cms_article a,
+		sys_user u,
+		cms_article_data da
+		<if test="label !=null and label !=''">
+			,cms_label l,
+			cms_label_conn_arti la
+		</if>
+		<if test="specialid !=null and specialid != ''">
+			,cms_featurepackage f,
+			sys_article_featurepackage af
+		</if>
+
+		where
+		a.del_flag='0' and u.id =a.create_by and a.id=da.id
+		<if test="specialid ==null || specialid == ''">
+			and da.copyfrom='0'
+		</if>
+		<if test="specialid !=null and specialid != ''">
+			and a.id=af.article_id and f.id=af.featurepackage_id
+			and f.id=#{specialid}
+		</if>
+		<if test="title !=null and title !=''">
+			and a.title like #{title}
+		</if>
+		<if test="label !=null and label !=''">
+			and a.id=la.article_id and l.label_id =la.label_id
+			and l.label_id =#{label}
+		</if>
+		order by a.hits desc
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+	<insert id="insertArticleAudit" parameterType="java.util.Map">
+		INSERT INTO SYS_ARTICLE_USER_AUDIT(
+		ARTICLE_ID,
+		USER_ID
+		)
+		<foreach close=")" collection="list" item="item" index="index"
+			open="(" separator="union">
+			SELECT
+			#{articleId},
+			#{item}
+			FROM DUAL
+		</foreach>
+	</insert>
+	<select id="findArticleNeedAuditByUserId" parameterType="java.lang.String"
+		resultType="java.lang.String">
+		select ARTICLE_ID from SYS_ARTICLE_USER_AUDIT where
+		USER_ID=#{userId}
+	</select>
+
+
+	<select id="findNeedAuditList" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		,
+		(select u.name from sys_user u where u.id=a.examine_id) AS "examiner.name"
+		FROM cms_article a JOIN sys_article_user_audit au ON
+		a.id=au.article_id
+		<include refid="cmsArticleJoins" />
+		<where>
+			a.del_flag = #{delFlag}
+			and
+			au.user_id=#{auditUserId}
+			<if test="title != null and title != ''">
+				AND a.title LIKE
+				<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+			</if>
+			<if test="isOriginal == 3">
+				AND a.is_original ='1'
+			</if>
+			<if test="isOriginal == 4">
+				AND a.is_original ='0'
+			</if>
+			<if test="posid != null and posid != ''">
+				AND a.posid LIKE
+				<if test="dbName == 'oracle'">'%'||#{posid}||'%'</if>
+				<if test="dbName == 'mysql'">CONCAT('%', #{posid}, '%')</if>
+			</if>
+			<if test="category.id != null and category.id != ''">
+				AND (a.category_id = #{category.id}
+				<if test="category.parentIds != null and category.parentIds != ''">
+					or c.parent_ids like
+					<if test="dbName == 'oracle'">'%'||#{category.id}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{category.id}, ',%')</if>
+				</if>
+				)
+			</if>
+			<if test="image != null and image != ''">
+				AND a.image = #{image}
+			</if>
+			<if test="createBy != null and createBy.id != null and createBy.id != ''">
+				AND a.create_by = #{createBy.id}
+			</if>
+			<!-- ${sqlMap.dsf} -->
+
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.weight DESC, a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+
+	<insert id="saveAudits" parameterType="java.util.List">
+		INSERT INTO SYS_ARTICLE_USER_AUDIT(
+		ARTICLE_ID,
+		USER_ID
+		)
+		<foreach close=")" collection="list" item="item" index="index"
+			open="(" separator="union">
+			SELECT
+			#{item.officeId},
+			#{item.userId}
+			FROM DUAL
+		</foreach>
+	</insert>
+	<delete id="clearAudits">
+		DELETE FROM SYS_ARTICLE_USER_AUDIT
+	</delete>
+
+	<select id="findListNoCondition" resultType="Article">
+		SELECT
+		<include refid="cmsArticleColumns" />
+		FROM cms_article a
+		<include refid="cmsArticleJoins" />
+	</select>
+
+	<select id="findArticleAudit" resultType="java.lang.String">
+		select user_id from
+		SYS_ARTICLE_USER_AUDIT where article_id=#{articleId}
+	</select>
+
+	<select id="professorNeedAudit" resultType="java.lang.Integer"
+		parameterType="java.lang.String">
+		select
+		count(*)
+		from CMS_ARTICLE
+		where
+		CATEGORY_ID in
+		(select
+		uc.category_id
+		from SYS_USER u
+		inner join
+		SYS_USER_CATEGORY uc
+		on
+		u.id=uc.user_id
+		where
+		u.id=#{professorId}
+		)
+		<if test='delFlag != "3" '>
+			and EXAMINE_ID=#{professorId}
+		</if>
+		<if test='delFlag == "2"'>
+			and EXAMINE_ID='-1'
+		</if>
+		and DEL_FLAG=#{delFlag}
+	</select>
+
+	<resultMap type="map" id="articleLables">
+		<result property="articleId" column="ARTICLE_ID" />
+		<!-- <association property="lable" javaType="com.yonyou.kms.modules.cms.entity.Label"> 
+			<id property="id" column="LABEL_ID"/> <result property="labelvalue" column="LABEL_VALUE"/> 
+			</association> -->
+		<collection property="lable" javaType="map">
+			<id property="id" column="LABEL_ID" />
+			<result property="labelvalue" column="LABEL_VALUE" />
+		</collection>
+	</resultMap>
+
+	<!-- <select id="listAllArticleLables" resultMap="articleLables"> select 
+		LABEL_VALUE ,CL.LABEL_ID,clc.ARTICLE_ID from CMS_LABEL cl left join CMS_LABEL_CONN_ARTI 
+		clc on CL.LABEL_ID=CLC.LABEL_ID </select> -->
+
+	<select id="listAllArticleLables" resultType="map">
+		select LABEL_VALUE as "label_value" ,CL.LABEL_ID as
+		"labelId",clc.ARTICLE_ID as "articleId" from CMS_LABEL cl left join
+		CMS_LABEL_CONN_ARTI clc on CL.LABEL_ID=CLC.LABEL_ID
+		<!-- select LABEL_VALUE ,CL.LABEL_ID,clc.ARTICLE_ID from CMS_LABEL cl left 
+			join CMS_LABEL_CONN_ARTI clc on CL.LABEL_ID=CLC.LABEL_ID -->
+	</select>
+
+	<select id="listAllArticleLables2" resultType="map">
+		select LABEL_VALUE
+		as "label_value" ,CL.LABEL_ID as "labelId",clc.ARTICLE_ID as
+		"articleId" from CMS_LABEL cl left join CMS_LABEL_CONN_ARTI clc on
+		CL.LABEL_ID=CLC.LABEL_ID
+	</select>
+
+	<!-- add by linj -->
+	<select id="findListByLabel" resultType="Article">
+		SELECT
+		distinct(a.id) AS "id",
+		a.category_id AS "category.id",
+		c.name as "category.title",
+		a.title AS "title",
+		a.link AS "link",
+		a.color AS "color",
+		a.image AS
+		"image",
+		a.keywords AS "keywords",
+		a.description AS "description",
+		a.weight AS "weight",
+		a.weight_date AS "weightDate",
+		a.hits AS "hits",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks
+		AS "remarks",
+		a.del_flag AS "delFlag",
+
+		(select u.name from sys_user u where u.id=a.examine_id) AS "examiner.name",
+		(select count(1) from cms_mystore s where s.del_flag='2' and
+		s.CREATE_BY=#{1} and a.id=s.title_id) as "articleData.hasStore",
+		(SELECT count(ID) FROM CMS_ARTICLE_ATT_FILE where ACTICLE_ID=a.id AND
+		DEL_FLAG='0' AND ISPOSTARTICLE='1') as "articleData.hasAttFile",
+		(select count(l.label_id) from cms_label l,cms_label_conn_arti la
+		where l.del_flag='0' and l.label_id=la.label_id and
+		a.id=la.article_id) as "posid"
+		FROM
+		CMS_ARTICLE a,
+		CMS_CATEGORY c,
+		CMS_LABEL L,
+		CMS_LABEL_CONN_ARTi ar,
+		CMS_ARTICLE_DATA ad
+		where contains(l.label_value,#{0})>0 and a.del_flag='0' and a.category_id
+		=c.id
+		and l.del_flag='0' and ar.label_id=l.label_id and a.id=ar.article_id and
+		ad.id=a.id
+		order by a.create_date desc
+	</select>
+
+	<select id="articlePreExamers" parameterType="java.lang.String"
+		resultType="com.yonyou.kms.modules.sys.entity.User">
+		select
+		a.id as "id",
+		a.name as "name"
+		from
+		(
+		select
+		u.id,u.name
+		from
+		sys_user u
+		where
+		id
+		in
+		(select
+		uc.user_id
+		from SYS_USER_CATEGORY uc
+		where uc.CATEGORY_ID=
+		(select
+		c."ID"
+		from
+		CMS_ARTICLE a
+		inner join CMS_CATEGORY c on
+		a.CATEGORY_ID=c."ID"
+		where a."ID"=#{articleId}))
+		) a
+		<if test="needExamer!=true">
+			where a."ID" <![CDATA[<>]]>
+			(select EXAMINE_ID from CMS_ARTICLE where id=#{articleId})
+		</if>
+	</select>
+
+	<!-- 2017-11-07新增 -->
+	<select id="getKnowledgeListByCondition" resultMap="AppResult">
+		select * from(
+		select A.*, rownum rn
+		from(
+		select
+		a.id as "id",
+		a.title as "title",
+		a.create_by as "authorid",
+		a.image as "image",
+		a.description as "description",
+		u.name as "authorname",
+		a.hits as "clicknum",
+		a.create_date as "createtime",
+		da.content as "content"
+		from
+		cms_article a,
+		sys_user u,
+		cms_article_data da
+		<if test="specialid !=null and specialid != ''">
+			,cms_featurepackage f,
+			sys_article_featurepackage af
+		</if>
+		where
+		a.del_flag='0' and u.id =a.create_by and a.id=da.id
+		<if test="specialid !=null and specialid != ''">
+			and a.id=af.article_id and f.id=af.featurepackage_id
+			and f.id=#{specialid}
+		</if>
+		<if test="title !=null and title !=''">
+			and a.title like #{title}
+		</if>
+		<if test="breedType !=null and breedType !=''">
+			and a.LABEL_LIST LIKE #{breedType}
+		</if>
+		<if test="articleType !=null and articleType !=''">
+			and a.LABEL_LIST LIKE #{articleType}
+		</if>
+		order by a.hits desc
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+	
+	<select id="getProductListByCondition" resultMap="AppResult">
+		select * from(
+		select A.*, rownum rn
+		from(
+		select
+		a.id as "id",
+		a.title as "title",
+		a.image as "image",
+		a.description as "description",
+		a.create_by as "authorid",
+		u.name as "authorname",
+		a.hits as "clicknum",
+		a.create_date as "createtime",
+		da.content as "content"
+		from
+		cms_article a,
+		sys_user u,
+		cms_article_data da
+		<if test="specialid !=null and specialid != ''">
+			,cms_featurepackage f,
+			sys_article_featurepackage af
+		</if>
+		where
+		a.del_flag='0' and u.id =a.create_by and a.id=da.id
+		<if test="specialid !=null and specialid != ''">
+			and a.id=af.article_id and f.id=af.featurepackage_id
+			and f.id=#{specialid}
+		</if>
+		<if test="title !=null and title !=''">
+			and a.title like #{title}
+		</if>
+		<if test="label !=null and label !=''">
+			<!-- and a.id=la.article_id and l.label_id =la.label_id
+			and l.label_id =#{label} -->
+			and a.LABEL_LIST LIKE #{label}
+		</if>
+		order by a.hits desc
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+	
+	<select id="getBusinessListByCondition" resultMap="AppResult">
+		select * from(
+		select A.*, rownum rn
+		from(
+		select
+		a.id as "id",
+		a.title as "title",
+		a.create_by as "authorid",
+		u.name as "authorname",
+		a.image as "image",
+		a.description as "description",
+		a.hits as "clicknum",
+		a.create_date as "createtime",
+		da.content as "content"
+		from
+		cms_article a,
+		sys_user u,
+		cms_article_data da
+		<if test="specialid !=null and specialid != ''">
+			,cms_featurepackage f,
+			sys_article_featurepackage af
+		</if>
+		where
+		a.del_flag='0' and u.id =a.create_by and a.id=da.id
+		<if test="specialid !=null and specialid != ''">
+			and a.id=af.article_id and f.id=af.featurepackage_id
+			and f.id=#{specialid}
+		</if>
+		<if test="title !=null and title !=''">
+			and a.title like #{title}
+		</if>
+		order by a.hits desc
+		) A
+		where
+		rownum <![CDATA[<=]]>
+		#{endnum}
+		)
+		where rn <![CDATA[>=]]>
+		#{beginnum}
+	</select>
+	
+</mapper>

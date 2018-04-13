@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ArticleCountDao">
+	<sql id="ArticleCountColumns">
+		 a.id as "articleid",
+		a.title as "articletitle",
+		a.hits as "countclick",
+		(select count(s.id)  from cms_share s where s.title_id=a.id) as "countshare",
+		(select count(r.id)  from cms_recommend r where r.DEL_FLAG='2' and r.TITLE_ID=a.id) as "countreco",
+		（select count(c.id) from cms_comment c where c.DEL_FLAG='0' and  c.CONTENT_ID=a.id） as "countcomm",
+		(select count(m.id)  from cms_mystore m where m.DEL_FLAG='2' and m.TITLE_ID=a.id) as "countcollect"
+		(select count(t.THUMBS_ID)  from cms_thumbs t where t.ISTHUMBS='0' and t.THUMBS_ID=a.id) as "countthumbs"
+	</sql>
+	<sql id="ArticleCountFrom">
+		 cms_article a
+	</sql>
+	
+
+
+<!--add by zhengyu -->
+	<select id="get" resultType="ArticleCount">
+		SELECT
+			article_id as "articleid",
+			count_reco as "countreco",
+			count_click as "countclick",
+			count_comm as "countcomm",
+			count_share as "countshare",
+			count_collect as "countcollect",
+			count_thumbs as "countthumbs"
+		FROM cms_article_count 
+		WHERE article_id = #{articleid}
+	</select>
+	<!-- end -->
+	
+	
+	<select id="getDataFromTable" resultType="ArticleCount">
+		SELECT
+			<include refid="ArticleCountColumns"/>
+		FROM
+			<include refid="ArticleCountFrom"/>
+		WHERE
+			a.DEL_FLAG='0'
+	</select>
+	
+	<insert id="insertArticleCount" parameterType="java.util.List">
+		INSERT INTO CMS_ARTICLE_COUNT
+		(ARTICLE_ID,ARTICLE_TITLE,COUNT_CLICK,COUNT_RECO,COUNT_COMM,COUNT_SHARE,COUNT_COLLECT,COUNT_THUMBS)
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				SELECT
+				#{item.articleid},
+				#{item.articletitle},
+				#{item.countclick},
+				#{item.countreco},
+				#{item.countcomm},
+				#{item.countshare},
+				#{item.countcollect},
+				#{item.countthumbs}
+				FROM DUAL
+			</foreach>	
+	</insert>
+	
+<!-- add by zhengyu -->	
+	<update id="update">
+		UPDATE CMS_ARTICLE_COUNT SET
+				
+			COUNT_RECO =#{countreco},
+			
+			
+			
+			COUNT_CLICK =#{countclick},
+			
+				
+			COUNT_COMM =#{countcomm},
+			
+			
+			COUNT_SHARE =#{countshare},
+			
+			
+			COUNT_COLLECT =#{countcollect},
+			
+			COUNT_THUMBS =#{countthumbs},
+			
+		WHERE article_id = #{articleid}
+	</update>
+	<!-- end -->	
+	
+	<update id="updateSingleAdd" parameterType="ArticleCount">
+		UPDATE CMS_ARTICLE_COUNT SET
+			<if test="countreco!=0"> 	
+			COUNT_RECO =COUNT_RECO+1
+			</if>
+			
+			<if test="countclick!=0"> 	
+			COUNT_CLICK =COUNT_CLICK+1
+			</if>
+			
+			<if test="countcomm!=0"> 	
+			COUNT_COMM =COUNT_COMM+1
+			</if>
+			
+			<if test="countshare!=0"> 	
+			COUNT_SHARE =COUNT_SHARE+1
+			</if>
+			
+			<if test="countcollect!=0"> 	
+			COUNT_COLLECT =COUNT_COLLECT+1
+			</if>
+			
+			<if test="countthumbs!=0"> 	
+			COUNT_THUMBS =COUNT_THUMBS+1
+			</if>
+			
+		WHERE ARTICLE_ID = #{articleid}
+	</update>
+	<update id="updateSingleReduce">
+		UPDATE CMS_ARTICLE_COUNT SET
+			<if test="countreco !=0 "> 	
+			COUNT_RECO =COUNT_RECO-1
+			</if>
+			<if test="countclick !=0"> 	
+			COUNT_CLICK =COUNT_CLICK-1
+			</if>
+			<if test="countcomm !=0"> 	
+			COUNT_COMM =COUNT_COMM-1
+			</if>
+			<if test="countshare !=0"> 	
+			COUNT_SHARE =COUNT_SHARE-1
+			</if>
+			<if test="countcollect !=0"> 	
+			COUNT_COLLECT =COUNT_COLLECT-1
+			</if>
+			<if test="countthumbs !=0"> 	
+			COUNT_THUMBS =COUNT_THUMBS-1
+			</if>
+		WHERE article_id = #{articleid}
+	
+	
+	</update>
+	
+	<insert id="insert">
+		INSERT INTO CMS_ARTICLE_COUNT
+		(ARTICLE_ID,ARTICLE_TITLE,COUNT_CLICK,COUNT_RECO,COUNT_COMM,COUNT_SHARE,COUNT_COLLECT,COUNT_THUMBS)
+		VALUES
+		(
+			#{articleid},
+			#{articletitle},
+			#{countclick},
+			#{countreco},
+			#{countcomm},
+			#{countshare},
+			#{countcollect},
+			#{countthumbs}	
+		)
+	
+	</insert>
+	
+	<update id="updateArticleCount" parameterType="java.util.List">
+		BEGIN 
+			<foreach collection="list" item="item"  index="index" separator=";" >
+				UPDATE CMS_ARTICLE_COUNT
+				SET
+        				ARTICLE_ID=#{item.articleid},
+        				ARTICLE_TITLE=#{item.articletitle},
+        				COUNT_CLICK=#{item.countclick},
+        				COUNT_RECO=#{item.countreco},
+        				COUNT_COMM=#{item.countcomm},
+        				COUNT_SHARE=#{item.countshare},
+        				COUNT_COLLECT=#{item.countcollect},
+        				COUNT_THUMBS=#{item.countthumbs}
+				WHERE ARTICLE_ID=#{item.articleid}
+			</foreach>
+			;commit;	
+		 END;
+	</update>
+	
+	<select id="getData" resultType="String">
+		SELECT ARTICLE_ID FROM CMS_ARTICLE_COUNT WHERE ARTICLE_ID=#{articleid}
+	</select>
+	
+	<sql id="getDataColumns">
+		a.ARTICLE_ID as "articleid",
+		a.ARTICLE_TITLE as "articletitle",
+		a.COUNT_CLICK as "countclick",
+		a.COUNT_RECO as "countreco",
+		a.COUNT_COMM as "countcomm",
+		a.COUNT_SHARE as "countshare",
+		a.COUNT_COLLECT as "countcollect",
+		a.COUNT_THUMBS as "countthumbs"
+	</sql>
+	
+	<select id="getArticleCountData" resultType="ArticleCount">
+		SELECT
+			<include refid="getDataColumns"/>
+		FROM
+			(select 
+			c.ARTICLE_ID,
+			c.ARTICLE_TITLE,
+			c.COUNT_CLICK,
+			c.COUNT_RECO,
+			c.COUNT_COMM,
+			c.COUNT_SHARE,
+			c.COUNT_COLLECT,
+			c.COUNT_THUMBS,
+   			COUNT_CLICK*0.3+COUNT_RECO*0.3+COUNT_COMM*0.1+COUNT_SHARE*0.1+COUNT_COLLECT*0.2 as weight
+   			from 
+   			CMS_ARTICLE_COUNT c
+      		,cms_article a
+      		where a.category_id in　
+      		<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+			</foreach>	 
+       		and a.id=c.ARTICLE_ID and a.DEL_FLAG='0'
+   			order by weight desc) a
+		where rownum  &lt;  6
+	</select>
+	
+	<select id="getArticleShareData" resultType="ArticleCount">
+		select  a.ARTICLE_ID as "articleid",a.ARTICLE_TITLE as "articletitle",a.COUNT_SHARE as "countshare"
+		from
+			(select  a.article_id,a.article_title,a.COUNT_SHARE 
+			from CMS_ARTICLE_COUNT a,cms_article u
+			where a.article_id=u.id 
+			and u.DEL_FLAG='0'
+			and u.category_id in 
+				<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+				</foreach>	
+			 order by a.COUNT_SHARE desc) a
+		where  rownum &lt; 6
+	</select>
+	
+	<select id="getNewArticleCountData" resultType="ArticleCount">
+		select a.ARTICLE_ID as "articleid" ,a.ARTICLE_TITLE as "articletitle",a.COUNT_CLICK as "countclick" ,a.COUNT_RECO as "countreco",a.COUNT_COMM as "countcomm"
+		from
+				(select c.ARTICLE_ID ,c.ARTICLE_TITLE ,c.COUNT_CLICK ,c.COUNT_RECO ,c.COUNT_COMM,
+				a.update_date
+				from 
+  				CMS_ARTICLE_COUNT c,
+  				cms_article a
+				where a.category_id in
+				 <foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+				</foreach>				
+				and c.ARTICLE_ID=a.id and a.DEL_FLAG='0'
+		order by a.update_date desc) a
+		where rownum  &lt; 6
+	</select>
+	<select id="getAllid" resultType="String">
+		SELECT ARTICLE_ID FROM CMS_ARTICLE_COUNT	
+	</select>
+	<delete id="deleteData" parameterType = "java.util.List">
+		DELETE FROM CMS_ARTICLE_COUNT
+		WHERE ARTICLE_ID in
+		<foreach collection="list" item = "item" open="(" separator="," close=")">
+		#{item}  
+   		</foreach>
+	</delete>
+	
+	<!-- 计算单条所有的数据 -->
+	<select id="getSingleData" resultType="ArticleCount">
+		select 
+    			l.id as "articleid",
+    			l.TITLE as "articletitle",
+    			(select hits from cms_article a where a.id=l.id) as "countclick",
+    			(select count(s.id)  from cms_share s where s.title_id=l.id) as "countshare",
+    			(select count(r.id)  from cms_recommend r where r.TITLE_ID=l.id and r.DEL_FLAG='2') as "countreco",
+    			(select count(c.id) from cms_comment c where c.CONTENT_ID=l.id and c.DEL_FLAG='0')as "countcomm",
+    			(select count(m.id) from cms_mystore m where m.TITLE_ID=l.id and m.DEL_FLAG='2') as "countcollect",
+				(select count(t.THUMBS_ID)  from cms_thumbs t where t.ISTHUMBS='0' and t.THUMBS_ID=l.id) as "countthumbs"
+		from 
+    			cms_article l
+		where
+    			l.id=#{articleid}
+	</select>
+	<delete id="deleteSingleData">
+		DELETE FROM CMS_ARTICLE_COUNT
+		WHERE ARTICLE_ID=#{articleid}
+	</delete>
+</mapper>

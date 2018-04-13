@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.UserLabelDao">
+	<select id="findList" resultType="UserLabel">
+		SELECT 	
+        		a.label_id as "labelid",
+				a.label_value as "labelvalue",
+				(select count(t.id) from cms_label_conn_arti t,cms_article r where t.label_id=a.label_id and r.id=t.article_id and r.del_flag='0' ) as "countarticle",
+        		(select count(u.id) from cms_label_conn_user u,sys_user s where u.user_id=s.id and s.del_flag='0' and u.label_id=c.label_id ) as "countuser"
+		FROM
+				CMS_LABEL_CONN_USER c,
+				CMS_LABEL a
+		WHERE	
+				c.user_id=#{userid}				
+				<if test="flag==1 ">
+				and  a.label_id = c.label_id  
+				</if>
+				<if test="labelvalue !=null and labelvalue !=''">
+      			and a.LABEL_VALUE Like '%'||#{labelvalue}||'%'
+      			</if>
+      	order by a.CREATEDATE desc  	
+	</select>
+	
+	<delete id="delete" parameterType="UserLabel">
+		DELETE FROM CMS_LABEL_CONN_USER
+		WHERE LABEL_ID=#{labelid} and USER_ID=#{userid}
+	</delete>
+	<insert id="batchInsert">
+		insert into cms_label_conn_user(ID,LABEL_ID,USER_ID)
+		<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+			select
+				#{item.id},
+				#{item.labelid},
+				#{item.userid}
+			from dual
+		</foreach>	
+	</insert>
+	<delete id="batchdelete" parameterType = "java.util.List">
+		DELETE FROM cms_label_conn_user  where in
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				#{id}
+			</foreach>
+	</delete> 
+</mapper>

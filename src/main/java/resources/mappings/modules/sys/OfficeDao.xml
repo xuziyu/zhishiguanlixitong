@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.sys.dao.OfficeDao">
+
+	<sql id="officeColumns">
+		a.id,
+		a.parent_id AS "parent.id",
+		a.parent_ids,
+		a.area_id AS "area.id",
+		a.code,
+		a.name,
+		a.sort,
+		a.type,
+		a.grade,
+		a.address, 
+		a.zip_code, 
+		a.master, 
+		a.phone, 
+		a.fax, 
+		a.email, 
+		a.remarks,
+		a.create_by AS "createBy.id",
+		a.create_date,
+		a.update_by AS "updateBy.id",
+		a.update_date,
+		a.del_flag,
+		a.useable AS useable,
+		a.primary_person AS "primaryPerson.id",
+		a.deputy_person AS "deputyPerson.id",
+		p.name AS "parent.name",
+		ar.name AS "area.name",
+		ar.parent_ids AS "area.parentIds",
+		pp.name AS "primaryPerson.name",
+		dp.name AS "deputyPerson.name"
+	</sql>
+	
+	<select id="getTopOffice"	resultType="Office">
+		SELECT 
+			id as "id",
+			name as "name"
+		FROM
+			sys_office
+		WHERE
+			PARENT_ID='0'
+	
+	</select> 
+	<sql id="officeJoins">
+		LEFT JOIN sys_office p ON p.id = a.parent_id
+		LEFT JOIN sys_area ar ON ar.id = a.area_id
+		LEFT JOIN SYS_USER pp ON pp.id = a.primary_person
+		LEFT JOIN SYS_USER dp ON dp.id = a.deputy_person
+    </sql>
+	
+	<select id="get" resultType="Office">
+		SELECT
+			<include refid="officeColumns"/>
+		FROM sys_office a
+		<include refid="officeJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="Office">
+		SELECT
+			<include refid="officeColumns"/>
+		FROM sys_office a
+		<include refid="officeJoins"/>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		<!-- 数据范围过滤 -->
+		${sqlMap.dsf}
+		OR a.id = #{currentUser.office.id}
+		ORDER BY a.code
+	</select>
+			
+	<select id="findAllList" resultType="Office">
+		SELECT
+			<include refid="officeColumns"/>
+		FROM sys_office a
+		<include refid="officeJoins"/>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		ORDER BY a.code
+	</select>
+	
+	<!-- add by xiongbo-->
+	<select id="findAll" resultType="Office">
+		SELECT
+		a.id,
+		a.parent_id AS "parent.id",
+		a.parent_ids,
+		a.area_id AS "area.id",
+		a.code,
+		a.name,
+		a.sort,
+		a.type,
+		a.grade,
+		a.address, 
+		a.zip_code, 
+		a.master, 
+		a.phone, 
+		a.fax, 
+		a.email, 
+		a.remarks,
+		a.create_by AS "createBy.id",
+		a.create_date,
+		a.update_by AS "updateBy.id",
+		a.update_date,
+		a.del_flag,
+		a.useable AS useable,
+		a.primary_person AS "primaryPerson.id",
+		a.deputy_person AS "deputyPerson.id"
+		FROM sys_office a where a.useable='1'and a.del_flag='0'
+		ORDER BY a.code
+	</select>
+	
+	<select id="findByParentIdsLike" resultType="Office">
+		SELECT
+			<include refid="officeColumns"/>
+		FROM sys_office a
+		<include refid="officeJoins"/>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL} AND a.parent_ids LIKE #{parentIds}
+		ORDER BY a.code
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO sys_office(
+			id, 
+			parent_id, 
+			parent_ids, 
+			area_id, 
+			code, 
+			name, 
+			sort, 
+			type, 
+			grade, 
+			address, 
+			zip_code, 
+			master, 
+			phone, 
+			fax, 
+			email, 
+			create_by, 
+			create_date, 
+			update_by, 
+			update_date, 
+			remarks, 
+			del_flag,
+			useable,
+			primary_person,
+			deputy_person
+		) VALUES (
+			#{id}, 
+			#{parent.id}, 
+			#{parentIds}, 
+			#{area.id}, 
+			#{code}, 
+			#{name}, 
+			#{sort}, 
+			#{type}, 
+			#{grade}, 
+			#{address}, 
+			#{zipCode}, 
+			#{master}, 
+			#{phone}, 
+			#{fax}, 
+			#{email}, 
+			#{createBy.id}, 
+			#{createDate}, 
+			#{updateBy.id}, 
+			#{updateDate}, 
+			#{remarks}, 
+			#{delFlag},
+			#{useable},
+			#{primaryPerson.id},
+			#{deputyPerson.id}
+		)
+	</insert>
+	<!-- 批量插入 -->
+	<insert id="batchInsert" parameterType="java.util.List">
+		INSERT INTO sys_office(
+			id, 
+			parent_id, 
+			parent_ids, 
+			area_id, 
+			code, 
+			name, 
+			sort, 
+			type, 
+			grade, 
+			address, 
+			zip_code, 
+			master, 
+			phone, 
+			fax, 
+			email, 
+			create_by, 
+			create_date, 
+			update_by, 
+			update_date, 
+			remarks, 
+			del_flag,
+			useable,
+			primary_person,
+			deputy_person
+		)
+		<foreach close=")" collection="list" item="item" index="index" open="(" separator="union"> 
+			SELECT 
+			#{item.id}, 
+			#{item.parent.id}, 
+			#{item.parentIds}, 
+			#{item.area.id}, 
+			#{item.code}, 
+			#{item.name}, 
+			#{item.sort}, 
+			#{item.type}, 
+			#{item.grade}, 
+			#{item.address}, 
+			#{item.zipCode}, 
+			#{item.master}, 
+			#{item.phone}, 
+			#{item.fax}, 
+			#{item.email}, 
+			<!-- #{item.createBy.id}, -->
+			'fcdd0a06251745da8b2cce3a0a667a6d',
+			#{item.createDate}, 
+			<!-- #{item.updateBy.id}, -->
+			'fcdd0a06251745da8b2cce3a0a667a6d',
+			#{item.updateDate}, 
+			#{item.remarks}, 
+			#{item.delFlag},
+			#{item.useable},
+			#{item.primaryPerson.id},
+			#{item.deputyPerson.id}
+		FROM DUAL
+		</foreach>
+	</insert>
+		
+	<update id="update">
+		UPDATE sys_office SET 
+			parent_id = #{parent.id}, 
+			parent_ids = #{parentIds}, 
+			area_id = #{area.id}, 
+			code = #{code}, 
+			name = #{name}, 
+			type = #{type}, 
+			grade = #{grade}, 
+			address = #{address}, 
+			zip_code = #{zipCode}, 
+			master = #{master}, 
+			phone = #{phone}, 
+			fax = #{fax}, 
+			email = #{email}, 
+			update_by = #{updateBy.id}, 
+			update_date = #{updateDate}, 
+			remarks = #{remarks},
+			useable=#{useable},
+			primary_person=#{primaryPerson.id},
+			deputy_person=#{deputyPerson.id}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- add by xiongbo 批量更新-->
+	<update id="batchUpdate" parameterType="java.util.List">
+	<!-- 	<foreach collection="list" item="item" index="index" separator="," > 
+		UPDATE sys_office SET 
+			parent_id = #{item.parent.id}, 
+			parent_ids = #{item.parentIds}, 
+			area_id = #{item.area.id}, 
+			code = #{item.code}, 
+			name = #{item.name}, 
+			type = #{item.type}, 
+			grade = #{item.grade}, 
+			address = #{item.address}, 
+			zip_code = #{item.zipCode}, 
+			master = #{item.master}, 
+			phone = #{item.phone}, 
+			fax = #{item.fax}, 
+			email = #{item.email}, 
+			update_by = #{item.updateBy.id}, 
+			update_date = #{item.updateDate}, 
+			remarks = #{item.remarks},
+			useable=#{item.useable},
+			primary_person=#{item.primaryPerson.id},
+			deputy_person=#{item.deputyPerson.id}
+		WHERE id = #{item.id}
+		</foreach>
+		 -->
+		
+		BEGIN  
+        	<foreach collection="list" item="item" index="index" separator=";"> 
+           		 UPDATE sys_office
+            	<set>
+            	<if test="item.parent.id!=null and item.parent.id!=''">
+                	parent_id = #{item.parent.id},
+            	</if>
+            	<if test="item.parentIds!=null and item.parentIds!=''">
+                	parent_ids = #{item.parentIds},
+           	 	</if>
+				<if test="item.area.id!=null and item.area.id!=''">
+					area_id=#{item.area.id},
+				</if>
+				<if test="item.code!=null and item.code!=''">
+					code=#{item.code},
+				</if>
+				<if test="item.name!=null and item.name!=''">
+					name=#{item.name},
+				</if>
+				<if test="item.type!=null and item.type!=''">
+					type=#{item.type},
+				</if>
+				<if test="item.grade!=null and item.grade!=''">
+					grade=#{item.grade},
+				</if>
+				<if test="item.address!=null and item.address!=''">
+					address=#{item.address},
+				</if>
+				<if test="item.zipCode!=null and item.zipCode!=''">
+					zip_code=#{item.zipCodee},
+				</if>
+				<if test="item.master!=null and item.master!=''">
+					master=#{item.master},
+				</if>
+				<if test="item.phone!=null and item.phone!=''">
+					phone=#{item.phone},
+				</if>
+				<if test="item.fax!=null and item.fax!=''">
+					fax=#{item.fax},
+				</if>
+				<if test="item.email!=null and item.email!=''">
+					email=#{item.email},
+				</if>
+				<if test="item.updateBy.id!=null and item.updateBy.id!=''">
+					update_by=#{item.updateBy.id},
+				</if>
+				<if test="item.updateDate!=null and item.updateDate!=''">
+					update_date=#{item.updateDate},
+				</if>
+				<if test="item.delFlag!=null and item.delFlag!=''">
+					remarks=#{item.remarks},
+				</if>
+					<if test="item.useable!=null and item.useable!=''">
+					useable=#{item.useable},
+				</if>
+					<if test="item.primaryPerson.id!=null and item.primaryPerson.id!=''">
+					primary_person=#{item.primaryPerson.id},
+				</if>
+					<if test="item.deputyPerson.id!=null and item.deputyPerson.id!=''">
+					deputy_person=#{item.deputyPerson.id},
+				</if>
+            	</set>
+            WHERE ID = #{item.id}
+            </foreach>
+        ;END;
+	</update>
+	
+	<update id="updateParentIds">
+		UPDATE sys_office SET 
+			parent_id = #{parent.id}, 
+			parent_ids = #{parentIds}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE sys_office SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id} OR parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{id}||',%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{id}, ',%')</if>
+	</update>
+	
+	<insert id="saveOfficeAduits" parameterType="java.util.Map">
+		INSERT INTO SYS_OFFICE_USER_AUDIT(
+			OFFICE_ID, 
+			USER_ID
+			)
+		<foreach close=")" collection="list" item="item" index="index" open="(" separator="union"> 
+			SELECT 
+			#{officeId},
+			#{item}
+		FROM DUAL
+		</foreach>
+	</insert>
+	
+	<delete id="deleteOfficeAduit">
+		delete from SYS_OFFICE_USER_AUDIT where OFFICE_ID=#{officeId} and USER_ID=#{userId}
+	</delete>
+	
+	<select id="findAuditUsers" resultType="com.yonyou.kms.modules.sys.entity.User">
+		select sys_user.id as id,SYS_USER.name as name from sys_user inner join SYS_OFFICE_USER_AUDIT on sys_user.id=SYS_OFFICE_USER_AUDIT."USER_ID" and sys_user.DEL_FLAG='0' and SYS_OFFICE_USER_AUDIT."OFFICE_ID"=#{officeId}
+	</select>
+	
+	<delete id="clearOfficeAudit" parameterType="java.lang.String">
+		delete from SYS_OFFICE_USER_AUDIT where SYS_OFFICE_USER_AUDIT.OFFICE_ID=#{officeId}
+	</delete>
+	
+	<select id="findAllAudits" resultType="com.yonyou.kms.modules.sys.entity.Audit">
+		select USER_ID as userId,
+			   OFFICE_ID as officeId
+		from SYS_OFFICE_USER_AUDIT
+	</select>
+	<select id="findUserOffice" resultType="com.yonyou.kms.modules.sys.entity.Office" parameterType="java.lang.String">
+		select * from SYS_OFFICE where id=(select office_id from sys_user where id=#{userId})
+	</select>
+</mapper>

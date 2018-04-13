@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.ThumbsDao">
+
+	<insert id="insertEntity">
+		INSERT INTO cms_thumbs(
+		thumbs_id,
+		user_id,
+		isThumbs
+		) VALUES (
+		#{0},
+		#{1},
+		#{2}
+		)
+	</insert>
+
+	<update id="updateEntity">
+		UPDATE cms_thumbs SET
+		ISTHUMBS=#{0}
+		WHERE THUMBS_ID = #{1} 
+		AND USER_ID=#{2}
+	</update>
+	<sql id="cmsThumbsDaoColumns">
+		a.THUMBS_ID AS "thumbsId",
+		a.USER_ID AS "userId",
+		a.ISTHUMBS AS "isThumbs"
+	</sql>
+	
+	<select id="getEntity" resultType="Thumbs">
+		select 
+		<include refid="cmsThumbsDaoColumns" />
+		FROM cms_thumbs a WHERE THUMBS_ID=#{0} AND USER_ID=#{1}
+	</select>
+	
+	
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.sys.dao.StatusDao">
+
+	<insert id="insertStatus">
+		INSERT INTO SYS_STATUS VALUES(#{id},#{fromSys},#{ts})
+	</insert>
+	
+	<select id="selectStatus" resultType="String">
+		SELECT MAX(TS) FROM SYS_STATUS WHERE FROMSYS=#{fromSys}
+	</select>
+	
+	<insert id="batchInsert">
+ 	INSERT INTO SYS_STATUS(ID, FROMSYS, TS) 
+ 	<foreach close=")" collection="list" item="item" index="index" open="(" separator="union"> 
+		SELECT
+		#{item.id},
+		#{item.fromSys},
+		#{item.ts}
+ 		FROM DUAL 
+	</foreach>
+	</insert>
+	
+	<update id="batchUpdate">
+   		 BEGIN  
+        	<foreach collection="list" item="item" index="index" separator=";"> 
+           		 UPDATE SYS_STATUS 
+            	<set>
+            	<if test="item.id!=null and item.id!=''">
+                	ID = #{item.id},
+            	</if>
+
+            	<if test="item.fromSys!=null and item.fromSys!=''">
+                	FROMSYS = #{item.fromSys},
+           	 	</if>
+				<if test="item.ts!=null and item.ts!=''">
+					TS=#{item.ts},
+				</if>
+            	</set>
+            WHERE ID = #{item.id}
+            </foreach>
+        ;END;
+    </update> 
+	
+</mapper>

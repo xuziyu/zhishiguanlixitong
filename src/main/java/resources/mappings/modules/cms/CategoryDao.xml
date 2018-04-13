@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.CategoryDao">
+    
+	<sql id="cmsCategoryDaoColumns">
+		a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		c.name AS "parent.name",
+		c.view_config AS "parent.viewConfig",
+		o.name AS "office.name",
+		s.theme AS "site.theme"
+	</sql>
+	
+	<sql id="cmsCategoryDaoJoins">
+	    LEFT JOIN cms_category c ON c.id = a.parent_id
+		JOIN sys_office o ON o.id = a.office_id
+		JOIN sys_user u ON u.id = a.create_by
+		JOIN cms_site s ON a.site_id = s.id
+	</sql>
+	
+	<sql id="cmsCategoryDaoJoins1">
+	    LEFT JOIN cms_category c ON c.id = a.parent_id
+		JOIN sys_office o ON o.id = a.office_id
+		JOIN sys_user u ON u.id = a.create_by
+	</sql>
+    <select id="getTopOffice"	resultType="Office">
+		SELECT 
+			id as "id",
+			name as "name"
+		FROM
+			sys_office
+		WHERE
+			PARENT_ID='0'
+	
+	</select> 
+	<select id="getMaxSort" resultType="String">
+		select 
+			max(sort)
+		from CMS_CATEGORY 
+		where 
+			DEL_FLAG='0' 
+	</select>
+	<select id="queryAll" resultType="Category">
+		select 
+			a.id AS "id",
+			a.parent_id AS "parent.id",
+			a.parent_ids AS "parentIds",
+			a.site_id AS "site.id",
+			a.office_id AS "office.id",
+			a.module AS "module",
+			a.name AS "name",
+			a.image AS "image",
+			a.href AS "href",
+			a.target AS "target",
+			a.description AS "description",
+			a.keywords AS "keywords",
+			a.sort AS "sort",
+			a.in_menu AS "inMenu",
+			a.in_menu AS "inList",
+			a.show_modes AS "showModes",
+			a.allow_comment AS "allowComment",
+			a.is_audit AS "isAudit",
+			a.custom_list_view AS "customListView",
+			a.custom_content_view AS "customContentView",
+			a.view_config AS "viewConfig",
+			a.create_by AS "createBy.id",
+			a.create_date AS "createDate",
+			a.update_by AS "updateBy.id",
+			a.update_date AS "updateDate",
+			a.remarks AS "remarks",
+			a.del_flag AS "delFlag"
+		from cms_category a
+		<where>
+			a.DEL_FLAG='0'
+		</where>
+	</select>
+	<select id="get" resultType="Category">
+		SELECT 
+			a.id AS "id",
+			a.parent_id AS "parent.id",
+			a.parent_ids AS "parentIds",
+			a.site_id AS "site.id",
+			a.office_id AS "office.id",
+			a.module AS "module",
+			a.name AS "name",
+			a.image AS "image",
+			a.href AS "href",
+			a.target AS "target",
+			a.description AS "description",
+			a.keywords AS "keywords",
+			a.sort AS "sort",
+			a.in_menu AS "inMenu",
+			a.in_menu AS "inList",
+			a.show_modes AS "showModes",
+			a.allow_comment AS "allowComment",
+			a.is_audit AS "isAudit",
+			a.custom_list_view AS "customListView",
+			a.custom_content_view AS "customContentView",
+			a.view_config AS "viewConfig",
+			a.create_by AS "createBy.id",
+			a.create_date AS "createDate",
+			a.update_by AS "updateBy.id",
+			a.update_date AS "updateDate",
+			a.remarks AS "remarks",
+			a.del_flag AS "delFlag",
+			o.name AS "office.name"
+		FROM cms_category a
+		JOIN sys_office o ON o.id = a.office_id
+		JOIN sys_user u ON u.id = a.create_by
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="find" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findList" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag = #{delFlag}
+			<if test=" site.id != null and site.id != ''">
+				AND a.site_id  = #{site.id}
+			</if>
+			<if test="parent.id != null and parent.id != ''">
+				AND a.parent_id  = #{parent.id}
+			</if>
+			${sqlMap.dsf}
+		</where>		
+			ORDER BY a.site_id,a.sort ASC
+	</select>
+	
+	<!-- add hefeng -->
+	<select id="findparentIdsById" resultType="String">
+		SELECT
+			a.parent_ids AS "parentIds"
+		FROM cms_category a
+		<where>
+			a.id=#{id}
+		</where>
+	</select>
+	
+	<!-- end -->
+	
+	<select id="findModule" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test=" site.id != null and site.id != ''">
+				AND a.site_id  = #{site.id}
+			</if>
+			<if test="parent.id != null and parent.id != ''">
+				AND a.parent_id  = #{parent.id}
+			</if>
+			<if test="inMenu != null and inMenu != '' ">
+				AND a.in_menu  = #{inMenu}
+			</if>
+			${sqlMap.dsf}
+		</where>		
+			ORDER BY a.site_id,a.sort ASC
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO cms_category(
+			id,
+			parent_id,
+			parent_ids,
+			site_id,
+			office_id,
+			module,
+			name,
+			image,
+			href,
+			target,
+			description,
+			keywords,
+			sort,
+			in_menu,
+			in_list,
+			show_modes,
+			allow_comment,
+			is_audit,
+			custom_list_view,
+			custom_content_view,
+			view_config,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{parent.id},
+			#{parentIds},
+			#{site.id},
+			#{office.id},
+			#{module},
+			#{name},
+			#{image},
+			#{href},
+			#{target},
+			#{description},
+			#{keywords},
+			#{sort},
+			#{inMenu},
+			#{inList},
+			#{showModes},
+			#{allowComment},
+			#{isAudit},
+			#{customListView},
+			#{customContentView},
+			#{viewConfig},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE cms_category SET 	
+			
+			parent_id = #{parent.id},
+			parent_ids = #{parentIds},
+			site_id = #{site.id},
+			office_id = #{office.id},
+			module = #{module},
+			name = #{name},
+			image = #{image},
+			href = #{href},
+			target = #{target},
+			description = #{description},
+			keywords = #{keywords},
+			sort = #{sort},
+			in_menu = #{inMenu},
+			in_list = #{inList},
+			show_modes = #{showModes},
+			allow_comment = #{allowComment},
+			is_audit = #{isAudit},
+			custom_list_view = #{customListView},
+			custom_content_view = #{customContentView},
+			view_config = #{viewConfig},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			del_flag = #{delFlag}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="updateParentIds">
+		UPDATE cms_category SET 
+			parent_id = #{parent.id}, 
+			parent_ids = #{parentIds}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE cms_category SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<select id="findByParentIdAndSiteId" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL} 
+			<if test=" site.id != null and site.id != ''">
+				AND a.site_id  = #{site.id}
+			</if>
+			<if test="parent.id != null and parent.id != ''">
+				AND a.parent_id  = #{parent.id}
+			</if>
+		</where>		
+		order by a.site_id, a.sort
+	</select>
+	<select id="findByParentIdsLike" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL} 
+			AND a.parent_id LIKE 
+					<if test="dbName == 'oracle'">'%'||#{id}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{id}, '%')</if>
+		</where>		
+		order by a.site_id, a.sort
+	</select>
+	
+	<select id="findStats" resultType="java.util.Map" parameterType="java.util.Map">
+		select max(c.id) as categoryId,
+		       max(c.name) as categoryName,
+		       max(cp.id) as categoryParentId,
+		       max(cp.name) as categoryParentName,
+		       count(*) as cnt,
+		       sum(a.hits) as hits,
+		       max(a.updateDate) as updateDate,
+		       max(o.id) as officeId,
+		       max(o.name) as officeName,
+		  from cms_article a
+		  JOIN cms_category c ON c.id = a.category_id
+		  JOIN cms_category cp ON c.parent_id = cp.id
+		  JOIN sys_office o ON o.id = c.office_id
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL} 
+			AND a.category_id
+			AND c.site_id =
+			AND c.id = :id or c.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%'||#{parentIds}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{parentIds}, '%')</if>
+			group by cp.sort, cp.id, c.sort, c.id
+			order by cp.sort, cp.id, c.sort, c.id
+		</where>		
+	</select>
+	<!-- 
+	根据office的id查询知识分类的
+	 -->
+	 <select id="findByOffice" resultType="String">
+		select id from cms_category where office_id=#{id}
+	 </select>
+	 <!-- addby yinshh3 -->
+	 <select id="getDelFlagByCategoryID" resultType="String">
+		SELECT DEL_FLAG FROM CMS_ARTICLE WHERE CATEGORY_ID IN
+		<foreach close=")" collection="list" open="(" item="item" separator=",">
+		#{item}
+	</foreach>
+	</select>
+	<select id="batchFindOffice">
+		SELECT ID FROM CMS_CATEGORY WHERE OFFICE_ID IN${param}
+	</select>
+	<!-- end -->
+	<!-- 
+	add by luqibao
+	 -->
+	 <select id="getChildsByCategoryId" resultType="Category">
+	 	SELECT 
+	 	a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag" FROM CMS_CATEGORY a
+	 	WHERE PARENT_ID=#{_parameter} and a.del_flag='0'
+	 </select>
+	
+	 <select id="getChildIdByCategoryId" resultType="String">
+	 select id from cms_category
+	 where parent_id=#{id} and del_flag='0'
+	 </select>
+	 
+	<!-- -->
+	<select id="findAllByIds" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>		
+		where a.id in
+		<foreach collection="list" item="item" index="index"
+            open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+        and a.del_flag='0'
+	
+	</select>
+	<select id="findCategoryIds" resultType="String">
+		SELECT a.id FROM cms_category a LEFT JOIN sys_office o 
+		ON o.id = a.office_id
+		JOIN sys_user u ON u.id = a.create_by
+		<where>
+			${sqlMap.dsf}
+		</where>
+	</select>
+	<!-- end -->
+	<!-- update by yinshh3 -->
+	<select id="getMaxImage" resultType="String">
+	SELECT MAX(IMAGE) FROM CMS_CATEGORY WHERE PARENT_ID='1'
+	</select>
+	
+	<select id="parentCategoryIds" resultType="Category">
+	select id,parent_ids from cms_category where id in 
+	<foreach collection="list" item="item" index="index"
+            open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+	</select>
+	
+	<select id="findCategorysByUser" resultType="Category">
+		SELECT 
+	 	a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+		FROM CMS_CATEGORY a
+		inner join sys_user_category b on a.id=b.category_id
+		inner join sys_user c on b.user_id=c.id and c.id=#{id}
+	</select>
+	<update id="updateUserCategory">
+		update sys_user_category set user_id=#{user.id},category_id=#{category.id}
+	</update>
+	<insert id="insertUserCategory">
+		insert into sys_user_category(
+			id,
+			user_id,
+			category_id
+		)
+		values(
+			#{id},
+			#{user.id},
+			#{category.id}
+			)
+	</insert>
+	
+	<delete id="deleteUserCategory">
+		delete from sys_user_category where user_id=#{user.id}
+	 	<if test="category.id!=null and category.id!=''">
+			 and category_id=#{category.id}
+		</if>  
+	</delete>
+	
+	<insert id="insertRoleCategory">
+		insert into sys_role_category(
+		role_id,
+		category_id
+		)
+		values(
+		#{role.id},
+		#{category.id}
+		)
+	</insert>
+	
+	<delete id="deleteRoleCategory">
+		delete from sys_role_category where role_id=#{role.id} and category_id=#{category.id}
+	</delete>
+	
+	<select id="findCategoryRoleByUser" resultType="Category">
+		SELECT 
+	 	a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+		FROM CMS_CATEGORY a
+		inner join sys_role_category b 
+		on a.id=b.category_id 
+		inner join sys_role c
+		on c.id=b.role_id inner join 
+		sys_user_role d 
+		on d.role_id=c.id 
+		inner join sys_user e 
+		on d.user_id=e.id 
+		and e.id=#{id}
+	</select>
+	<select id="findCategoryRole" resultType="Category">
+		SELECT 
+	 	a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+		FROM CMS_CATEGORY a
+		inner join sys_role_category b 
+		on a.id=b.category_id 
+		inner join sys_role c
+		on c.id=b.role_id inner join 
+		sys_user_role d 
+		on d.role_id=c.id 
+		<!-- inner join sys_user e 
+		on d.user_id=e.id 
+		and e.id=#{id} -->
+	</select>
+	<select id="findCategoryNotSimple" resultType="Category">
+		SELECT 
+	 	a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+		FROM CMS_CATEGORY a
+		inner join sys_role_category b 
+		on a.id=b.category_id
+	</select>
+	<select id="findALL" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+		<where>
+			a.del_flag ='0'
+		</where>
+	</select>
+	
+	<select id="findALLNOflag" resultType="Category">
+		SELECT 
+			<include refid="cmsCategoryDaoColumns"/>
+		FROM cms_category a
+		<include refid="cmsCategoryDaoJoins"/>
+	</select>
+	<!-- 批量插入用户 -->
+	<insert id="batchInsert" parameterType="java.util.List">
+		INSERT INTO cms_category(
+			id,
+			parent_id,
+			parent_ids,
+			site_id,
+			office_id,
+			module,
+			name,
+			image,
+			href,
+			target,
+			description,
+			keywords,
+			sort,
+			in_menu,
+			in_list,
+			show_modes,
+			allow_comment,
+			is_audit,
+			custom_list_view,
+			custom_content_view,
+			view_config,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) <foreach close=")" collection="list" item="item" index="index" open="(" separator="union"> 
+		 SELECT 
+			#{item.id},
+			#{item.parent.id},
+			#{item.parentIds},
+			#{item.site.id},
+			#{item.office.id},
+			#{item.module},
+			#{item.name},
+			#{item.image},
+			#{item.href},
+			#{item.target},
+			#{item.description},
+			#{item.keywords},
+			#{item.sort},
+			#{item.inMenu},
+			#{item.inList},
+			#{item.showModes},
+			#{item.allowComment},
+			#{item.isAudit},
+			#{item.customListView},
+			#{item.customContentView},
+			#{item.viewConfig},
+			#{item.createBy.id},
+			#{item.createDate},
+			#{item.updateBy.id},
+			#{item.updateDate},
+			#{item.remarks},
+			#{item.delFlag}
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<insert id="batchinsertUserCategory" parameterType="java.util.List">
+		insert into sys_user_category(
+			id,
+			user_id,
+			category_id
+		)<foreach close=")" collection="list" item="item" index="index" open="(" separator="union"> 
+		 SELECT 
+		    #{item.id},
+		    #{item.user.id},
+	    	#{item.category.id}
+		 FROM DUAL
+		 </foreach>
+	</insert>
+	
+	<select id="getUserCategoryByUser" resultType="Category">
+		select
+    		distinct
+    		c.id,
+    		c.name
+		from
+  			sys_user_category uc,
+  			cms_category c,
+  			sys_user u
+		where
+  			uc.category_id=c.id and u.id=uc.user_id and u.id=#{id}
+	
+	</select>
+	
+	<select id="getMaxSortInFirst" resultType="String" parameterType="java.lang.String">
+		select 
+			max(sort)
+		from CMS_CATEGORY 
+		where 
+			PARENT_ID=#{parentId} and DEL_FLAG='0'
+	</select>
+	
+	<select id="getMaxSortInSecond" resultType="String">
+		SELECT count(sort) FROM cms_category WHERE module ='article' and del_flag='0'
+	</select>
+	
+	<select id="getAppCategory" resultType="Category">
+		SELECT
+			a.id AS "id",
+		a.parent_id AS "parent.id",
+		a.parent_ids AS "parentIds",
+		a.site_id AS "site.id",
+		a.office_id AS "office.id",
+		a.module AS "module",
+		a.name AS "name",
+		a.image AS "image",
+		a.href AS "href",
+		a.target AS "target",
+		a.description AS "description",
+		a.keywords AS "keywords",
+		a.sort AS "sort",
+		a.in_menu AS "inMenu",
+		a.in_list AS "inList",
+		a.show_modes AS "showModes",
+		a.allow_comment AS "allowComment",
+		a.is_audit AS "isAudit",
+		a.custom_list_view AS "customListView",
+		a.custom_content_view AS "customContentView",
+		a.view_config AS "viewConfig",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+		FROM
+			cms_category a
+		WHERE
+			id in ('2','3','4')
+	</select>
+</mapper>

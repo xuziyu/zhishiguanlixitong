@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.SwitchDao">
+
+<sql id="cmsFrontSwitchColumns">
+a.id AS "id",
+a.article_url AS "articleUrl",
+a.image_url AS "imageUrl",
+a.topic_word AS "topicWord",
+a.detail_explanation AS "detailExplanation",
+a.update_date AS "updateDate",
+a.update_by AS "updateBy.name",
+a.del_flag AS "delFlag"
+</sql>
+
+<select id="getAll" resultType="Switch">
+SELECT 
+		<include refid="cmsFrontSwitchColumns"/>
+		FROM cms_frontswitch a
+</select>
+
+<select id="getAllBydelFlag" resultType="Switch">
+SELECT 
+		<include refid="cmsFrontSwitchColumns"/>
+		FROM cms_frontswitch a
+		where a.del_flag='0'
+</select>
+
+
+<select id="get" resultType="Switch">
+select
+<include refid="cmsFrontSwitchColumns"/>
+		FROM cms_frontswitch a
+		where a.id=#{id}
+</select>
+
+	<update id="update">
+		UPDATE cms_frontswitch
+		SET
+			<if test="articleUrl !=null">
+			article_url=#{articleUrl},
+			</if>
+			<if test="imageUrl !=null and imageUrl!=''">
+			image_url=#{imageUrl},
+			</if>
+			<if test="topicWord !=null">
+			topic_word=#{topicWord},
+			</if>
+			<if test="detailExplanation !=null">
+			detail_explanation=#{detailExplanation},
+			</if>
+			<if test="updateDate !=null and updateDate!=''">
+			UPDATE_DATE=#{updateDate},
+			</if>
+			<if test="updateBy.name !=null and updateBy.name!=''">
+			UPDATE_BY=#{updateBy.name},
+			</if>
+			<if test="delFlag !=null and delFlag!=''">
+			del_flag=#{delFlag}
+			</if>
+		WHERE
+			id=#{id}	
+	</update>
+</mapper>
+
+

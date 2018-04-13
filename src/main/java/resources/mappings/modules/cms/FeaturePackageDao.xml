@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.FeaturePackageDao">
+
+	<sql id="cmsFeaturePackageDaoColumns">
+		a.id AS "id",
+       a.office_id AS "office.id",
+       a.can_share AS "canShare",
+       a.name  AS "name",
+       a.image AS "image",
+       a.description AS "description",
+       a.keywords    AS "keywords",
+       a.sort        AS "sort",
+       a.type     	 AS "type",
+       a.create_by   AS "createBy.id",
+       a.create_date AS "createDate",
+       a.update_by   AS "updateBy.id",
+       a.update_date AS "updateDate",
+       a.remarks     AS "remarks",
+       a.del_flag    AS "delFlag"
+	</sql>
+	<sql id="userColumns">
+    	a.id,
+    	a.company_id AS "company.id",
+    	a.office_id AS "office.id",
+    	a.login_name,
+    	a.password,
+    	a.local_pwd as "localPwd",
+    	a.no,
+		a.name,
+		a.email,
+		a.phone,
+		a.mobile,
+		a.user_type,
+		a.login_ip,
+		a.login_date,
+		a.remarks,
+		a.login_flag,
+		a.photo,
+		a.create_by AS "createBy.id",
+		a.create_date,
+		a.update_by AS "updateBy.id",
+		a.update_date,
+		a.del_flag,
+    	c.name AS "company.name",
+    	c.parent_id AS "company.parent.id",
+    	c.parent_ids AS "company.parentIds",
+    	ca.id AS "company.area.id",
+    	ca.name AS "company.area.name",
+    	ca.parent_id AS "company.area.parent.id",
+    	ca.parent_ids AS "company.area.parentIds",
+    	o.name AS "office.name",
+    	o.parent_id AS "office.parent.id",
+    	o.parent_ids AS "office.parentIds",
+    	oa.id AS "office.area.id",
+    	oa.name AS "office.area.name",
+    	oa.parent_id AS "office.area.parent.id",
+    	oa.parent_ids AS "office.area.parentIds",
+    	cu.id AS "company.primaryPerson.id",
+    	cu.name AS "company.primaryPerson.name",
+    	cu2.id AS "company.deputyPerson.id",
+    	cu2.name AS "company.deputyPerson.name",
+    	ou.id AS "office.primaryPerson.id",
+    	ou.name AS "office.primaryPerson.name",
+    	ou2.id AS "office.deputyPerson.id",
+    	ou2.name AS "office.deputyPerson.name"
+    </sql>
+     <sql id="userJoins">
+		JOIN sys_office c ON c.id = a.company_id
+		JOIN sys_area ca ON ca.id = c.area_id
+		JOIN sys_office o ON o.id = a.office_id
+		JOIN sys_area oa ON oa.id = o.area_id
+		LEFT JOIN sys_user cu ON cu.id = c.primary_person
+		LEFT JOIN sys_user cu2 ON cu2.id = c.deputy_person
+		LEFT JOIN sys_user ou ON ou.id = o.primary_person
+		LEFT JOIN sys_user ou2 ON ou2.id = o.deputy_person
+		left join sys_user_featurepackage suf on a.id = suf.user_id
+		left join cms_featurepackage cf on cf.id = suf.featurepackage_id 
+    </sql>
+	
+	
+	
+	<select id="get" resultType="FeaturePackage">
+		SELECT 
+			<include refid="cmsFeaturePackageDaoColumns"/>
+		FROM cms_featurepackage a
+		WHERE a.id = #{id}
+	</select>
+	
+	
+	<select id="findList" resultType="FeaturePackage">
+		SELECT 
+			<include refid="cmsFeaturePackageDaoColumns"/>
+		FROM cms_featurepackage a
+		<where>
+			a.del_flag = #{delFlag}
+			<if test="name != null and name != ''">
+				AND a.name LIKE 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{name}, '%')</if>
+			</if>
+			
+			<if test="ids != null and ids.size() > 0">
+				AND a.id in
+				<foreach collection="ids" item="item" index="index" open="(" close=")" separator=",">
+			       #{item}
+			   </foreach>
+			</if>
+		</where>		
+			ORDER BY a.type asc,a.sort desc
+	</select>
+	
+	<select id="getFeaturePackageListData" resultType="FeaturePackage">
+		SELECT 
+			<include refid="cmsFeaturePackageDaoColumns"/>
+		<!-- FROM (select * from cms_featurepackage where id in (select distinct(featurePackage_id) from sys_user_featurepackage where user_id = #{0}) order by sort) a -->
+		FROM (select * from cms_featurepackage order by sort) a
+		where rownum  &lt; 6
+	</select>
+	
+	<select id="getByName" resultType="FeaturePackage">
+		SELECT
+			<include refid="cmsFeaturePackageDaoColumns"/>
+		FROM cms_featurepackage a
+		WHERE a.name = #{name} AND a.del_flag = #{DEL_FLAG_NORMAL}
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO cms_featurepackage(
+			id,
+			office_id,
+			name,
+			can_share,
+			image,
+			description,
+			keywords,
+			sort,
+			type,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+		) VALUES (
+			#{id},
+			#{office.id},
+			#{name},
+			#{canShare},
+			#{image},
+			#{description},
+			#{keywords},
+			#{sort},
+			#{type},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		)
+	</insert>
+	
+	
+	<update id="update">
+		UPDATE cms_featurepackage SET
+		office_id = #{office.id},
+		can_share = #{canShare},
+		name = #{name},
+		image = #{image},
+		description = #{description},
+		keywords = #{keywords},
+		sort = #{sort},
+		type = #{type},
+		update_by = #{updateBy.id},
+		update_date = #{updateDate},
+		remarks = #{remarks},
+		del_flag = #{delFlag}
+		WHERE id = #{id}
+	</update>
+
+	<delete id="delete">
+		DELETE FROM cms_featurepackage 
+		WHERE id = #{id}
+	</delete>
+	
+	<!-- 插入专题包和知识关联表数据 -->
+	<insert id="insertArticleFeature">
+		INSERT INTO sys_article_featurepackage(
+			article_id,
+		    featurepackage_id
+		)
+		values(
+			#{article.id},
+			#{featurePackage.id}
+		)
+	</insert>
+	<select id="findAllUserFromFeaturePackageID" resultType="User">
+		SELECT 
+			<include refid="userColumns"/>	
+		FROM sys_user a
+			<include refid="userJoins"/>
+		WHERE cf.id = #{id}
+	</select>
+	<insert id="assignusertofeaturepackage">
+		INSERT INTO sys_user_featurepackage(
+			USER_ID,
+			FEATUREPACKAGE_ID
+		) VALUES (
+			#{0},
+			#{1}
+		)
+	</insert>
+	<delete id="unassignuser">
+		DELETE FROM sys_user_featurepackage WHERE USER_ID = #{0} and FEATUREPACKAGE_ID = #{1}
+	</delete>
+	
+	<!-- 查询知识所属的专题包 -->
+	<select id="getFeaturePackageIdsList" resultType="String">
+		select 
+	    a.featurepackage_id as a_featurepackage_id
+	    from sys_article_featurepackage a
+	    left join cms_article b on a.article_id = b.id
+		where a.article_id = #{id}
+	</select>
+	
+	<delete id="deleteArtileFeaturePackage">
+		DELETE FROM sys_article_featurepackage WHERE article_id = #{1} and featurepackage_id = #{0}
+	</delete>
+	
+	<delete id="delBatch"  parameterType="java.util.Map">
+		<![CDATA[ 
+			delete from sys_article_featurepackage a where  a.article_id in
+		]]>  
+		<foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+	       #{item}
+	   </foreach>
+	   <if test="featuerPackageId !=null and featuerPackageId != '' ">
+	   	and a.featurepackage_id =  #{featuerPackageId}
+	   </if>
+	</delete>
+	
+	<delete id="deleteArticleFeaturePackage">
+			delete from sys_article_featurepackage a where a.featurepackage_id =  #{id}
+	</delete>
+	
+	<delete id="deleteArticle">
+			delete from sys_article_featurepackage a where a.article_id=#{articleId}
+	</delete>
+	
+	<delete id="deleteUserFeaturePackage">
+			delete from sys_user_featurepackage a where a.featurepackage_id =  #{id}
+	</delete>
+	
+	
+	<select id="getMaxSort" resultType="String">
+		select max(sort) from cms_featurepackage
+	</select>
+	
+	<select id="getCount" resultType="String">
+		<!-- select count(t.article_id)  from sys_article_featurepackage t where t.featurepackage_id = #{id} -->
+		select count(a.id) from cms_article a where a.del_flag=0 and a.id in(select t.article_id  from sys_article_featurepackage t where t.featurepackage_id = #{id})
+	</select>
+	
+	<insert id="batchinsert">
+		INSERT INTO sys_article_featurepackage(ARTICLE_ID,FEATUREPACKAGE_ID)
+			<foreach close=")" collection="list" item="item" index="index"  separator="union" open="(">
+				SELECT
+					#{item.article.id},
+					#{item.featurePackage.id}
+				FROM DUAL
+			</foreach>
+	</insert>
+
+
+	<select id="getListByArticle" resultType="FeaturePackage">
+		select 
+  			f.id,
+  			f.name
+		from
+  			CMS_FEATUREPACKAGE f,
+  			SYS_ARTICLE_FEATUREPACKAGE s
+		where
+  			s.FEATUREPACKAGE_ID=f.id and s.article_id=#{id}
+	</select>
+	
+	<select id="getFeaturePackageByUser" resultType="String">
+		select b.featurepackage_id from sys_user_featurepackage b where b.user_id=#{userId}
+	</select>
+	
+	<select id="findAllListByFeature" resultType="Article">
+				
+	select * from( 
+    select A.*, rownum rn
+    from(
+      select  
+        a.id AS "id",
+        a.category_id AS "category.id",
+        c.name as "category.title",
+        a.title AS "title",
+        a.link AS "link",
+        a.color AS "color",
+        a.image AS "image",
+        a.keywords AS "keywords",
+        a.description AS "description",
+        a.weight AS "weight",
+        a.weight_date AS "weightDate",
+        a.hits AS "hits",
+        a.posid AS "posid",
+        a.custom_content_view AS "customContentView",
+        a.view_config AS "viewConfig",
+        a.create_by AS "createBy.id",
+        a.create_date AS "createDate",
+        a.update_by AS "updateBy.id",
+        a.update_date AS "updateDate",
+        a.remarks AS "remarks",
+        a.del_flag AS "delFlag",
+        c.name as "category.name",
+        a.is_original AS "isOriginal",
+        f.id AS "featurePackage.id",
+        f.name AS "featurePackage.name"
+        from 
+          cms_article a,
+        	cms_category c,
+          CMS_FEATUREPACKAGE f,
+          SYS_ARTICLE_FEATUREPACKAGE af
+        where
+          	a.category_id=c.id and af.article_id=a.id and af.FEATUREPACKAGE_ID=f.id and a.del_flag='0'
+        	
+        	<if test="isApp == '1'">
+				and f.CAN_SHARE ='1'
+			</if>
+			<if test="isShare == '1'">
+				and ad.ALLOW_SHARE='1'
+			</if>	
+        order by a.hits desc
+      ) A
+      where 
+        rownum <![CDATA[>=]]> #{pageMore}
+      )
+      where rn <![CDATA[<=]]> #{pageLess}
+	</select>
+	<select id="findFeaturePackageByUserId" resultType="FeaturePackage">
+		SELECT 
+			<include refid="cmsFeaturePackageDaoColumns"/>
+		FROM cms_featurepackage a
+		WHERE a.id in(select distinct(featurePackage_id) from sys_user_featurepackage where user_id = #{user.id})
+		ORDER BY a.sort
+	</select>
+	
+	<select id="hasFeaturePackage" resultType="int">
+		select count(FEATUREPACKAGE_ID) from sys_user_featurepackage where user_id=#{userId} and featurepackage_id=#{featurepackageId}
+	</select>
+	
+	<!-- 2017-11-07新增 -->
+	<sql id="cmsKnowAndBreedFeaturePackageColumns">
+		a.id AS "id",
+       a.can_share AS "canShare",
+       a.name  AS "name",
+       a.sort  AS "sort",
+       a.type  AS "type",
+       a.del_flag    AS "delFlag"
+	</sql>
+	<select id="findKnowledgeList" resultType="FeaturePackage">
+		SELECT 
+			<include refid="cmsKnowAndBreedFeaturePackageColumns"/>
+		FROM cms_featurepackage a
+		<where>
+			a.del_flag = 0 and a.can_share = 1
+			<if test="type != null and type != ''">
+				AND a.type = #{type} 
+			</if>
+		</where>		
+			ORDER BY a.sort desc
+	</select>
+	
+</mapper>

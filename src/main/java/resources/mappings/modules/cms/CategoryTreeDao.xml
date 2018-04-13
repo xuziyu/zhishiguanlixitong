@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yonyou.kms.modules.cms.dao.CategoryTreeDao">
+	<select id="getcategoryData"  resultType="CategoryTree">
+		select 
+		c.id as "categoryChild.id",
+		c.name  as "categoryChild.name",
+		c.parent_id as "id",
+		c.sort as "categoryChild.sort",
+		a.name as "name",
+		a.image as "image",
+		a.sort as "sort",
+		(select count(*) from cms_article where category_id =c.id and del_flag='0'
+		) as "categoryChild.hasArticle"
+		from 
+			( select  id,name,parent_id,sort
+        	from cms_category
+        	where id in 
+        	<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+			</foreach> and DEL_FLAG='0' order by sort
+        	) c,
+			cms_category  a
+		where c.parent_id=a.id
+		order by a.sort,c.sort
+	</select>
+	
+	<select id="getAllFather" resultType="CategoryTree">
+		select
+		a.parent_id as "id",
+		c.name as "name",
+		c.image as "image",
+		c.sort as "sort"
+		from
+			(select DISTINCT parent_id
+			from cms_category
+			where id in
+			<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+			</foreach> and DEL_FLAG='0' order by sort 
+			) a,
+			cms_category c
+		where c.id=a.parent_id
+		order by c.sort 
+	</select>
+	
+	<select id="batchget" resultType="CategoryTree">
+			select 
+				id as "id",
+				name as "name",
+				image as  "image",
+				sort as "sort"
+			from 
+				cms_category
+			where
+				id in 
+				<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+				#{item}
+				</foreach>
+			order by sort 
+	</select>
+</mapper>

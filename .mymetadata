@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="KMS"
+  id="myeclipse.1438231085107"
+  context-root="/KMS"
+  j2ee-spec="5.0"
+  archive="KMS.war">
+  <attributes>
+    <attribute name="webrootdir" value="/WebRoot" />
+  </attributes>
+</project-module>
+
